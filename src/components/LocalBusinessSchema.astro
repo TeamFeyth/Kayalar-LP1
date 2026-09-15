@@ -1,0 +1,32 @@
+---
+import { site } from '../config/site';
+import type { Lang } from '../i18n/ui';
+
+interface Props {
+  lang: Lang;
+}
+const { lang } = Astro.props;
+
+const schema = {
+  '@context': 'https://schema.org',
+  '@type': 'AutoDealer',
+  name: site.brand,
+  url: Astro.site ? new URL(Astro.url.pathname, Astro.site).href : site.mainSiteUrl,
+  telephone: site.phoneDisplay,
+  address: {
+    '@type': 'PostalAddress',
+    streetAddress: site.addressStreet,
+    addressLocality: site.addressCity,
+    addressRegion: site.addressState,
+    postalCode: site.addressZip,
+    addressCountry: 'US',
+  },
+  areaServed: 'Houston, TX',
+  priceRange: '$$',
+  inLanguage: lang === 'es' ? 'es-US' : 'en-US',
+  // Opening hours are still pending from the client — add openingHoursSpecification
+  // here once they confirm.
+};
+---
+
+<script type="application/ld+json" set:html={JSON.stringify(schema)} is:inline />

@@ -1,0 +1,68 @@
+---
+import LeadForm from './LeadForm.astro';
+import { site } from '../config/site';
+import { useTranslations, type Lang } from '../i18n/ui';
+
+interface Props {
+  lang: Lang;
+}
+const { lang } = Astro.props;
+const t = useTranslations(lang);
+---
+
+<section class="section" id="contact">
+  <div class="wrap prefooter__inner">
+    <div>
+      <h2>{t.prefooter.heading}</h2>
+      <p class="lede">{t.prefooter.sub}</p>
+
+      <p class="prefooter__contact">
+        <a href={site.mapsUrl} target="_blank" rel="noopener noreferrer">{site.addressLine}</a>
+        <a href={site.phoneHref}>{site.phoneDisplay}</a>
+      </p>
+    </div>
+
+    <LeadForm
+      formId="form_2_prefooter"
+      lang={lang}
+      heading={t.prefooter.formHeading}
+      sub={t.prefooter.formSub}
+      successHeading={t.confirm.prefooterHeading}
+      successBody={t.confirm.prefooterBody}
+    />
+  </div>
+</section>
+
+<style>
+  .prefooter__inner {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: clamp(30px, 5vw, 64px);
+    align-items: start;
+  }
+
+  .prefooter__contact {
+    display: grid;
+    gap: 6px;
+    margin-top: 26px;
+    padding-top: 22px;
+    border-top: 1px solid var(--line);
+    font-size: 15.5px;
+  }
+
+  .prefooter__contact a {
+    text-decoration: none;
+    color: var(--ink);
+    width: fit-content;
+  }
+
+  .prefooter__contact a:hover {
+    color: var(--red);
+  }
+
+  @media (max-width: 860px) {
+    .prefooter__inner {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>

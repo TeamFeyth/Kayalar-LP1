@@ -1,0 +1,211 @@
+---
+import { vehicles } from '../data/vehicles';
+import { site } from '../config/site';
+import { useTranslations, type Lang } from '../i18n/ui';
+
+interface Props {
+  lang: Lang;
+}
+const { lang } = Astro.props;
+const t = useTranslations(lang);
+---
+
+<section class="section" id="featured-vehicles">
+  <div class="wrap">
+    <div class="vehicles__head">
+      <h2>{t.vehicles.heading}</h2>
+      <p class="lede">{t.vehicles.sub}</p>
+    </div>
+
+    <ul class="vehicles__grid">
+      {
+        vehicles.map((v) => (
+          <li class="vcard">
+            <div class="vcard__media">
+              {v.image ? (
+                <img src={v.image} alt={v.name} loading="lazy" width="480" height="320" />
+              ) : (
+                <span class="vcard__placeholder">{t.vehicles.photoPending}</span>
+              )}
+            </div>
+
+            <div class="vcard__body">
+              <h3 class="vcard__name">
+                {v.year} {v.make} {v.model}
+              </h3>
+              <p class="vcard__trim">{v.trim}</p>
+
+              <p class="vcard__meta">
+                <span class="vcard__price">{v.price ?? t.vehicles.callForPrice}</span>
+                {v.mileage && (
+                  <span class="vcard__miles">
+                    {v.mileage} {t.vehicles.mileageSuffix}
+                  </span>
+                )}
+              </p>
+
+              <div class="vcard__actions">
+                <button
+                  type="button"
+                  class="btn btn--primary vcard__cta"
+                  data-popup-trigger
+                  data-vehicle-name={v.name}
+                  data-vehicle-id={v.id}
+                  data-vehicle-url={v.url}
+                >
+                  {t.vehicles.cardCta}
+                </button>
+                <a class="vcard__link" href={v.url} target="_blank" rel="noopener noreferrer">
+                  {t.vehicles.viewDetails}
+                </a>
+              </div>
+            </div>
+          </li>
+        ))
+      }
+    </ul>
+
+    <p class="vehicles__below">
+      {t.vehicles.belowGrid}
+      <a href={site.phoneHref}>{site.phoneDisplay}</a>
+    </p>
+  </div>
+</section>
+
+<style>
+  .vehicles__head {
+    margin-bottom: 34px;
+    max-width: 62ch;
+  }
+
+  .vehicles__head h2 {
+    margin-bottom: 10px;
+  }
+
+  .vehicles__grid {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 24px;
+  }
+
+  .vcard {
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .vcard__media {
+    aspect-ratio: 3 / 2;
+    background: var(--stone);
+    display: grid;
+    place-items: center;
+  }
+
+  .vcard__media img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .vcard__placeholder {
+    font-size: 12px;
+    color: var(--graphite);
+  }
+
+  .vcard__body {
+    padding: 18px;
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+  }
+
+  .vcard__name {
+    font-size: 17.5px;
+    margin: 0 0 3px;
+  }
+
+  .vcard__trim {
+    margin: 0 0 12px;
+    font-size: 13px;
+    color: var(--graphite);
+  }
+
+  .vcard__meta {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    margin: 0 0 16px;
+    padding-top: 12px;
+    border-top: 1px solid var(--line);
+  }
+
+  .vcard__price {
+    font-family: var(--font-display);
+    font-size: 19px;
+    font-weight: 600;
+  }
+
+  .vcard__miles {
+    font-size: 13px;
+    color: var(--graphite);
+  }
+
+  .vcard__actions {
+    margin-top: auto;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+
+  .vcard__cta {
+    flex: 1;
+    padding: 12px 16px;
+    font-size: 14px;
+  }
+
+  .vcard__link {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--graphite);
+    text-decoration: none;
+    border-bottom: 1px solid var(--line);
+    white-space: nowrap;
+  }
+
+  .vcard__link:hover {
+    color: var(--ink);
+    border-bottom-color: var(--ink);
+  }
+
+  .vehicles__below {
+    margin: 30px 0 0;
+    font-size: 16px;
+    color: var(--graphite);
+    max-width: none;
+  }
+
+  .vehicles__below a {
+    color: var(--red);
+    font-weight: 600;
+    text-decoration: none;
+    white-space: nowrap;
+  }
+
+  @media (max-width: 900px) {
+    .vehicles__grid {
+      grid-template-columns: repeat(2, 1fr);
+    }
+  }
+
+  @media (max-width: 560px) {
+    .vehicles__grid {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>

@@ -1,0 +1,131 @@
+---
+import { site } from '../config/site';
+import { useTranslations, type Lang } from '../i18n/ui';
+
+interface Props {
+  lang: Lang;
+}
+const { lang } = Astro.props;
+const t = useTranslations(lang);
+---
+
+<footer class="footer">
+  <div class="wrap footer__inner">
+    <div>
+      <p class="footer__brand">{site.brand}</p>
+      <p class="footer__address">
+        <a href={site.mapsUrl} target="_blank" rel="noopener noreferrer">{site.addressLine}</a>
+        <span aria-hidden="true">/</span>
+        <a href={site.phoneHref}>{site.phoneDisplay}</a>
+        <span aria-hidden="true">/</span>
+        <span>{t.footer.services}</span>
+      </p>
+    </div>
+
+    <a class="footer__privacy" href={site.privacyUrl} target="_blank" rel="noopener noreferrer">
+      {t.footer.privacy}
+    </a>
+  </div>
+
+  <div class="wrap">
+    <p class="footer__bottom">{t.footer.bottomLine}</p>
+  </div>
+</footer>
+
+<a class="floatcall" href={site.phoneHref}>
+  <svg viewBox="0 0 24 24" width="17" height="17" aria-hidden="true" focusable="false">
+    <path
+      d="M6.6 10.8a15.1 15.1 0 0 0 6.6 6.6l2.2-2.2c.3-.3.7-.4 1-.2 1.2.4 2.4.6 3.6.6.6 0 1 .4 1 1V20c0 .6-.4 1-1 1A17 17 0 0 1 3 4c0-.6.4-1 1-1h3.5c.6 0 1 .4 1 1 0 1.3.2 2.5.6 3.6.1.4 0 .8-.2 1l-2.3 2.2Z"
+      fill="currentColor"></path>
+  </svg>
+  {t.nav.call}
+</a>
+
+<style>
+  .footer {
+    background: var(--ink);
+    color: #b8b3a8;
+    padding: 40px 0 30px;
+    font-size: 14px;
+  }
+
+  .footer__inner {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 18px;
+    justify-content: space-between;
+    align-items: start;
+    padding-bottom: 22px;
+    border-bottom: 1px solid rgba(250, 248, 244, 0.13);
+  }
+
+  .footer__brand {
+    font-family: var(--font-display);
+    font-size: 17px;
+    color: var(--paper);
+    margin: 0 0 8px;
+  }
+
+  .footer__address {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin: 0;
+    max-width: none;
+  }
+
+  .footer__address a {
+    color: #b8b3a8;
+    text-decoration: none;
+  }
+
+  .footer__address a:hover {
+    color: var(--paper);
+  }
+
+  .footer__privacy {
+    color: #b8b3a8;
+    text-decoration: none;
+    border-bottom: 1px solid rgba(250, 248, 244, 0.25);
+  }
+
+  .footer__privacy:hover {
+    color: var(--paper);
+  }
+
+  .footer__bottom {
+    margin: 20px 0 0;
+    font-size: 12.5px;
+    color: #8c877d;
+    max-width: none;
+  }
+
+  /* Floating call button — mobile only, sits above the fold on scroll. */
+  .floatcall {
+    position: fixed;
+    left: 50%;
+    transform: translateX(-50%);
+    bottom: 16px;
+    z-index: 90;
+    display: none;
+    align-items: center;
+    gap: 8px;
+    padding: 14px 24px;
+    border-radius: 999px;
+    background: var(--red);
+    color: #fff;
+    font-size: 15px;
+    font-weight: 600;
+    text-decoration: none;
+    box-shadow: 0 8px 24px rgba(20, 18, 15, 0.28);
+  }
+
+  @media (max-width: 860px) {
+    .floatcall {
+      display: inline-flex;
+    }
+    .footer {
+      padding-bottom: 86px;
+    }
+  }
+</style>

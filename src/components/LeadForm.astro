@@ -1,0 +1,355 @@
+---
+/**
+ * Lead capture form — Section 5.3 of the brief.
+ * Used by all three placements so the field set never drifts:
+ *   form_1_hero, form_2_prefooter, form_3_popup_generic, form_3_popup_vehicle
+ *
+ * `formId` travels with the lead as a hidden field, which is what makes the
+ * source of each lead readable in the CRM.
+ */
+import { site } from '../config/site';
+import { useTranslations, type Lang } from '../i18n/ui';
+
+interface Props {
+  formId: string;
+  lang: Lang;
+  heading?: string;
+  sub?: string;
+  successHeading?: string;
+  successBody: string;
+  submitLabel?: string;
+  /** Vehicle-specific popup: pre-tags the lead with the selected vehicle. */
+  vehicleAware?: boolean;
+  variant?: 'card' | 'plain';
+  id?: string;
+}
+
+const {
+  formId,
+  lang,
+  heading,
+  sub,
+  successHeading,
+  successBody,
+  submitLabel,
+  vehicleAware = false,
+  variant = 'card',
+  id,
+} = Astro.props;
+
+const t = useTranslations(lang);
+const f = t.form;
+const uid = id || `form-${formId}`;
+
+const [consentBefore, consentAfter] = f.consent.split(f.consentLinkText);
+---
+
+<div class={`leadform leadform--${variant}`} data-leadform-wrapper>
+  {
+    (heading || sub) && (
+      <header class="leadform__head">
+        {heading && <h3 class="leadform__title">{heading}</h3>}
+        {sub && <p class="leadform__sub">{sub}</p>}
+      </header>
+    )
+  }
+
+  <form
+    class="leadform__form"
+    id={uid}
+    novalidate
+    data-lead-form
+    data-form-id={formId}
+    data-busy-label={f.submitting}
+    data-vehicle-aware={vehicleAware ? 'true' : 'false'}
+  >
+    <div class="field">
+      <label for={`${uid}-name`}>{f.fullName}</label>
+      <input
+        type="text"
+        id={`${uid}-name`}
+        name="full_name"
+        autocomplete="name"
+        placeholder={f.fullNamePlaceholder}
+        required
+      />
+      <p class="field__error" data-error-for="full_name">{f.errors.fullName}</p>
+    </div>
+
+    <div class="field">
+      <label for={`${uid}-email`}>{f.email}</label>
+      <input
+        type="email"
+        id={`${uid}-email`}
+        name="email"
+        autocomplete="email"
+        inputmode="email"
+        placeholder={f.emailPlaceholder}
+        required
+      />
+      <p class="field__error" data-error-for="email">{f.errors.email}</p>
+    </div>
+
+    <div class="field">
+      <label for={`${uid}-phone`}>{f.phone}</label>
+      <input
+        type="tel"
+        id={`${uid}-phone`}
+        name="phone"
+        autocomplete="tel"
+        inputmode="tel"
+        placeholder={f.phonePlaceholder}
+        maxlength="14"
+        data-phone-mask
+        required
+      />
+      <p class="field__error" data-error-for="phone">{f.errors.phone}</p>
+    </div>
+
+    <div class="field-row">
+      <div class="field">
+        <label for={`${uid}-loan`}>{f.existingLoan}</label>
+        <select id={`${uid}-loan`} name="existing_loan" required>
+          <option value="">{f.selectPlaceholder}</option>
+          <option value="Yes">{f.yes}</option>
+          <option value="No">{f.no}</option>
+        </select>
+        <p class="field__error" data-error-for="existing_loan">{f.errors.select}</p>
+      </div>
+
+      <div class="field">
+        <label for={`${uid}-preapproval`}>{f.preApproval}</label>
+        <select id={`${uid}-preapproval`} name="pre_approval" required>
+          <option value="">{f.selectPlaceholder}</option>
+          <option value="Yes">{f.yes}</option>
+          <option value="No">{f.no}</option>
+        </select>
+        <p class="field__error" data-error-for="pre_approval">{f.errors.select}</p>
+      </div>
+    </div>
+
+    <div class="consent">
+      <input
+        type="checkbox"
+        id={`${uid}-consent`}
+        name="tcpa_consent"
+        value="yes"
+        checked={site.consentPrechecked}
+      />
+      <label for={`${uid}-consent`}>
+        {consentBefore}<a href={site.privacyUrl} target="_blank" rel="noopener noreferrer"
+          >{f.consentLinkText}</a
+        >{consentAfter}
+      </label>
+    </div>
+
+    {/* Honeypot — hidden from people, catches naive bots. */}
+    <div class="hp" aria-hidden="true">
+      <label for={`${uid}-company`}>Company</label>
+      <input type="text" id={`${uid}-company`} name="company_website" tabindex="-1" autocomplete="off" />
+    </div>
+
+    {/* Populated by the form runtime before submit. */}
+    <input type="hidden" name="form_id" value={formId} />
+    <input type="hidden" name="landing_page" value={site.landingPage} />
+    <input type="hidden" name="locale" value={lang} />
+    <input type="hidden" name="vehicle_name" value="" />
+    <input type="hidden" name="vehicle_id" value="" />
+    <input type="hidden" name="vehicle_url" value="" />
+    <input type="hidden" name="page_url" value="" />
+    <input type="hidden" name="referrer" value="" />
+    <input type="hidden" name="utm_source" value="" />
+    <input type="hidden" name="utm_medium" value="" />
+    <input type="hidden" name="utm_campaign" value="" />
+    <input type="hidden" name="utm_content" value="" />
+    <input type="hidden" name="utm_term" value="" />
+    <input type="hidden" name="gclid" value="" />
+    <input type="hidden" name="gbraid" value="" />
+    <input type="hidden" name="wbraid" value="" />
+    <input type="hidden" name="fbclid" value="" />
+    <input type="hidden" name="msclkid" value="" />
+    <input type="hidden" name="fbp" value="" />
+    <input type="hidden" name="fbc" value="" />
+    <input type="hidden" name="event_id" value="" />
+    <input type="hidden" name="submitted_at" value="" />
+
+    <button type="submit" class="btn btn--primary btn--block" data-submit>
+      {submitLabel || f.submit}
+    </button>
+
+    <p class="leadform__network-error" data-network-error hidden>{f.errors.network}</p>
+  </form>
+
+  <div class="leadform__success" data-success hidden role="status" aria-live="polite">
+    <svg viewBox="0 0 24 24" width="28" height="28" aria-hidden="true" focusable="false">
+      <path
+        d="M20 6 9 17l-5-5"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2.4"
+        stroke-linecap="round"
+        stroke-linejoin="round"></path>
+    </svg>
+    {successHeading && <h3>{successHeading}</h3>}
+    <p>{successBody}</p>
+  </div>
+</div>
+
+<style>
+  .leadform--card {
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 26px;
+    box-shadow: var(--shadow-card);
+  }
+
+  .leadform__head {
+    margin-bottom: 18px;
+  }
+
+  .leadform__title {
+    font-size: 21px;
+    margin: 0 0 6px;
+  }
+
+  .leadform__sub {
+    margin: 0;
+    font-size: 14.5px;
+    color: var(--graphite);
+  }
+
+  .field {
+    margin-bottom: 14px;
+  }
+
+  .field label {
+    display: block;
+    font-size: 13px;
+    font-weight: 600;
+    margin-bottom: 6px;
+    color: var(--ink);
+  }
+
+  .field input,
+  .field select {
+    width: 100%;
+    padding: 12px;
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    background: #fff;
+    color: var(--ink);
+    font: inherit;
+    font-size: 15px;
+  }
+
+  .field select {
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 8'%3E%3Cpath d='M1 1.5 6 6.5l5-5' fill='none' stroke='%236B6860' stroke-width='1.6' stroke-linecap='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+    background-size: 12px;
+    padding-right: 34px;
+  }
+
+  .field input:focus,
+  .field select:focus {
+    border-color: var(--ink);
+  }
+
+  .field-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+  }
+
+  .field__error {
+    display: none;
+    margin: 6px 0 0;
+    font-size: 12.5px;
+    color: var(--red);
+  }
+
+  .field[data-invalid] .field__error {
+    display: block;
+  }
+
+  .field[data-invalid] input,
+  .field[data-invalid] select {
+    border-color: var(--red);
+  }
+
+  .consent {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 10px;
+    align-items: start;
+    margin: 4px 0 18px;
+  }
+
+  .consent input {
+    margin-top: 3px;
+    width: 16px;
+    height: 16px;
+    accent-color: var(--red);
+    flex: none;
+  }
+
+  .consent label {
+    font-size: 11px;
+    line-height: 1.5;
+    color: var(--graphite);
+  }
+
+  .consent a {
+    color: var(--red);
+  }
+
+  .hp {
+    position: absolute;
+    left: -9999px;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+  }
+
+  .leadform__network-error {
+    margin: 12px 0 0;
+    font-size: 13.5px;
+    color: var(--red);
+    text-align: center;
+  }
+
+  .leadform__success {
+    text-align: center;
+    padding: 22px 6px;
+    color: var(--ink);
+  }
+
+  .leadform__success svg {
+    color: var(--red);
+    margin: 0 auto 10px;
+  }
+
+  .leadform__success h3 {
+    margin: 0 0 6px;
+    font-size: 21px;
+  }
+
+  .leadform__success p {
+    margin: 0 auto;
+    color: var(--graphite);
+    font-size: 15px;
+    max-width: 34ch;
+  }
+
+  @media (max-width: 520px) {
+    .field-row {
+      grid-template-columns: 1fr;
+      gap: 0;
+    }
+    .leadform--card {
+      padding: 20px;
+    }
+  }
+</style>

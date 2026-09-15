@@ -1,0 +1,70 @@
+---
+import TopBar from './TopBar.astro';
+import Footer from './Footer.astro';
+import FormRuntime from './FormRuntime.astro';
+import { site } from '../config/site';
+import { useTranslations, localizePath, type Lang } from '../i18n/ui';
+
+interface Props {
+  lang: Lang;
+}
+const { lang } = Astro.props;
+const t = useTranslations(lang);
+---
+
+<TopBar lang={lang} />
+
+<main class="ty">
+  <div class="wrap ty__inner">
+    <svg viewBox="0 0 24 24" width="40" height="40" aria-hidden="true" focusable="false">
+      <path
+        d="M20 6 9 17l-5-5"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2.4"
+        stroke-linecap="round"
+        stroke-linejoin="round"></path>
+    </svg>
+    <h1>{t.thankYou.heading}</h1>
+    <p class="lede">{t.thankYou.body}</p>
+
+    <div class="ty__actions">
+      <a class="btn btn--primary" href={site.phoneHref}>{t.nav.call}</a>
+      <a class="btn btn--outline" href={localizePath('/', lang)}>{t.thankYou.back}</a>
+    </div>
+  </div>
+</main>
+
+<Footer lang={lang} />
+<FormRuntime />
+
+<style>
+  .ty {
+    min-height: 58vh;
+    display: grid;
+    place-items: center;
+    padding-block: clamp(56px, 10vw, 110px);
+  }
+
+  .ty__inner {
+    text-align: center;
+    max-width: 560px;
+  }
+
+  .ty__inner svg {
+    color: var(--red);
+    margin: 0 auto 18px;
+  }
+
+  .ty__inner p {
+    margin-inline: auto;
+  }
+
+  .ty__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    justify-content: center;
+    margin-top: 28px;
+  }
+</style>

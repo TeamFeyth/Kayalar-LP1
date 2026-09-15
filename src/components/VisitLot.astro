@@ -1,0 +1,92 @@
+---
+import { site } from '../config/site';
+import { useTranslations, type Lang } from '../i18n/ui';
+
+interface Props {
+  lang: Lang;
+}
+const { lang } = Astro.props;
+const t = useTranslations(lang);
+---
+
+<section class="section section--stone" id="visit">
+  <div class="wrap visit__inner">
+    <div>
+      <h2>{t.visit.heading}</h2>
+      <p>{t.visit.copy}</p>
+
+      <ul class="visit__list">
+        {t.visit.bullets.map((b) => <li>{b}</li>)}
+      </ul>
+    </div>
+
+    <aside class="visit__card">
+      <p class="visit__address">
+        {site.addressStreet}<br />
+        {site.addressCity}, {site.addressState} {site.addressZip}
+      </p>
+      <a class="btn btn--primary btn--block" href={site.phoneHref}>{t.nav.call}</a>
+      <a class="visit__directions" href={site.mapsUrl} target="_blank" rel="noopener noreferrer">
+        {t.visit.directions}
+      </a>
+    </aside>
+  </div>
+</section>
+
+<style>
+  .visit__inner {
+    display: grid;
+    grid-template-columns: 1.3fr 0.7fr;
+    gap: clamp(28px, 5vw, 64px);
+    align-items: start;
+  }
+
+  .visit__list {
+    list-style: none;
+    margin: 24px 0 0;
+    padding: 0;
+    display: grid;
+    gap: 12px;
+    max-width: 60ch;
+  }
+
+  .visit__list li {
+    padding-left: 18px;
+    border-left: 2px solid var(--red);
+    font-size: 16px;
+    line-height: 1.5;
+  }
+
+  .visit__card {
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 24px;
+  }
+
+  .visit__address {
+    margin: 0 0 18px;
+    font-family: var(--font-display);
+    font-size: 18px;
+    line-height: 1.45;
+  }
+
+  .visit__directions {
+    display: block;
+    margin-top: 14px;
+    text-align: center;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--graphite);
+  }
+
+  .visit__directions:hover {
+    color: var(--ink);
+  }
+
+  @media (max-width: 800px) {
+    .visit__inner {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>

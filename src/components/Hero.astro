@@ -1,0 +1,151 @@
+---
+import LeadForm from './LeadForm.astro';
+import { site } from '../config/site';
+import { useTranslations, type Lang } from '../i18n/ui';
+
+interface Props {
+  lang: Lang;
+}
+const { lang } = Astro.props;
+const t = useTranslations(lang);
+
+// Set this to '/images/hero.jpg' once the photo lands in /public/images/.
+// While it is null the image band is skipped, so the page never shows an
+// empty grey strip where the hero shot should be.
+const heroImage: string | null = null;
+---
+
+<section class="hero">
+  <div class="wrap hero__inner">
+    <div class="hero__copy">
+      <h1>{t.hero.headline}</h1>
+      <p class="hero__sub">{t.hero.sub}</p>
+
+      <div class="hero__actions">
+        <a class="btn btn--primary" href="#featured-vehicles">{t.hero.ctaPrimary}</a>
+        <a class="btn btn--outline" href={site.phoneHref}>{t.hero.ctaSecondary}</a>
+      </div>
+
+      <dl class="stats">
+        {
+          t.stats.map((s) => (
+            <div class="stats__item">
+              <dt class="stats__num">{s.num}</dt>
+              <dd class="stats__label">{s.label}</dd>
+            </div>
+          ))
+        }
+      </dl>
+    </div>
+
+    <div class="hero__form" id="hero-form">
+      <LeadForm
+        formId="form_1_hero"
+        lang={lang}
+        heading={t.hero.formHeading}
+        sub={t.hero.formSub}
+        successBody={t.confirm.hero}
+      />
+    </div>
+  </div>
+
+  {
+    heroImage && (
+      <div
+        class="hero__media"
+        style={`--hero-image: url('${heroImage}')`}
+        role="img"
+        aria-label={t.hero.imageAlt}
+      />
+    )
+  }
+</section>
+
+<style>
+  .hero {
+    background: var(--paper);
+    padding-top: clamp(40px, 6vw, 68px);
+  }
+
+  .hero__inner {
+    display: grid;
+    grid-template-columns: 1.08fr 0.92fr;
+    gap: clamp(32px, 5vw, 64px);
+    align-items: start;
+    padding-bottom: clamp(40px, 6vw, 64px);
+  }
+
+  .hero h1 {
+    margin-bottom: 18px;
+  }
+
+  .hero__sub {
+    font-size: 17.5px;
+    color: var(--graphite);
+    margin-bottom: 28px;
+    max-width: 46ch;
+  }
+
+  .hero__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-bottom: 36px;
+  }
+
+  .stats {
+    display: grid;
+    grid-template-columns: repeat(3, auto);
+    justify-content: start;
+    gap: 34px;
+    margin: 0;
+    padding-top: 26px;
+    border-top: 1px solid var(--line);
+  }
+
+  .stats__item {
+    max-width: 15ch;
+  }
+
+  .stats__num {
+    font-family: var(--font-display);
+    font-size: 30px;
+    font-weight: 500;
+    line-height: 1;
+  }
+
+  .stats__label {
+    margin: 6px 0 0;
+    font-size: 12.5px;
+    color: var(--graphite);
+    line-height: 1.4;
+  }
+
+  .hero__media {
+    height: clamp(220px, 34vw, 400px);
+    background-color: var(--stone);
+    background-image: var(--hero-image);
+    background-size: cover;
+    background-position: center;
+    border-top: 1px solid var(--line);
+    border-bottom: 1px solid var(--line);
+  }
+
+  @media (max-width: 900px) {
+    .hero__inner {
+      grid-template-columns: 1fr;
+    }
+    .stats {
+      gap: 22px;
+      justify-content: space-between;
+      width: 100%;
+    }
+  }
+
+  @media (max-width: 480px) {
+    .stats {
+      grid-template-columns: 1fr 1fr;
+      row-gap: 18px;
+    }
+  }
+</style>

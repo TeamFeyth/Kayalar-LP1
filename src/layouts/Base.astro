@@ -1,0 +1,70 @@
+---
+import '../styles/global.css';
+import Analytics from '../components/Analytics.astro';
+import { site, tracking } from '../config/site';
+import { getLangFromUrl, useTranslations, alternatePath } from '../i18n/ui';
+
+interface Props {
+  title?: string;
+  description?: string;
+  noindex?: boolean;
+}
+
+const lang = getLangFromUrl(Astro.url);
+const t = useTranslations(lang);
+
+const { title = t.meta.title, description = t.meta.description, noindex = false } = Astro.props;
+
+const canonical = new URL(Astro.url.pathname, Astro.site).href;
+const enHref = new URL(alternatePath(Astro.url, 'en'), Astro.site).href;
+const esHref = new URL(alternatePath(Astro.url, 'es'), Astro.site).href;
+---
+
+<!doctype html>
+<html lang={lang}>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{title}</title>
+    <meta name="description" content={description} />
+    <link rel="canonical" href={canonical} />
+    {noindex && <meta name="robots" content="noindex, nofollow" />}
+
+    <link rel="alternate" hreflang="en-US" href={enHref} />
+    <link rel="alternate" hreflang="es-US" href={esHref} />
+    <link rel="alternate" hreflang="x-default" href={enHref} />
+
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content={site.brand} />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:url" content={canonical} />
+    <meta property="og:locale" content={lang === 'es' ? 'es_US' : 'en_US'} />
+    <meta property="og:image" content={new URL('/images/og-image.jpg', Astro.site).href} />
+    <meta name="twitter:card" content="summary_large_image" />
+
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <meta name="theme-color" content="#14120F" />
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Inter:wght@400;500;600;700&display=swap"
+    />
+
+    <Analytics />
+    <slot name="head" />
+  </head>
+
+  <body>
+    {
+      tracking.gtmId && (
+        <noscript
+          set:html={`<iframe src="https://www.googletagmanager.com/ns.html?id=${tracking.gtmId}" height="0" width="0" style="display:none;visibility:hidden"></iframe>`}
+        />
+      )
+    }
+    <slot />
+  </body>
+</html>

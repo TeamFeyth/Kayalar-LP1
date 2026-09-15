@@ -1,0 +1,17 @@
+{
+  "name": "kayalar-lp1",
+  "type": "module",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Kayalar Motors — Landing Page 1 (Google / Meta paid traffic)",
+  "scripts": {
+    "dev": "astro dev",
+    "start": "astro dev",
+    "build": "astro build",
+    "preview": "astro preview",
+    "astro": "astro"
+  },
+  "dependencies": {
+    "astro": "^5.6.1"
+  }
+}

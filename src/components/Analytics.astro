@@ -1,0 +1,72 @@
+---
+/**
+ * Section 4 — Analytics, Pixel & Snippet Registry.
+ *
+ * Meta Pixel is hard-wired (the ID was supplied in the brief). Every other tag
+ * renders only when its env var is filled in, so nothing breaks while those
+ * fields are still "(blank)".
+ */
+import { tracking } from '../config/site';
+
+const { metaPixelId, gtmId, ga4Id, callRailSwapSrc, searchConsoleToken } = tracking;
+---
+
+{searchConsoleToken && <meta name="google-site-verification" content={searchConsoleToken} />}
+
+{/* ---- Meta Pixel ---- */}
+<script is:inline define:vars={{ metaPixelId }}>
+  !(function (f, b, e, v, n, t, s) {
+    if (f.fbq) return;
+    n = f.fbq = function () {
+      n.callMethod ? n.callMethod.apply(n, arguments) : n.queue.push(arguments);
+    };
+    if (!f._fbq) f._fbq = n;
+    n.push = n;
+    n.loaded = !0;
+    n.version = '2.0';
+    n.queue = [];
+    t = b.createElement(e);
+    t.async = !0;
+    t.src = v;
+    s = b.getElementsByTagName(e)[0];
+    s.parentNode.insertBefore(t, s);
+  })(window, document, 'script', 'https://connect.facebook.net/en_US/fbevents.js');
+  fbq('init', metaPixelId);
+  fbq('track', 'PageView');
+</script>
+<noscript
+  set:html={`<img height="1" width="1" style="display:none" src="https://www.facebook.com/tr?id=${metaPixelId}&ev=PageView&noscript=1" alt="" />`}
+/>
+
+{/* ---- Google Tag Manager ---- */}
+{
+  gtmId && (
+    <script is:inline define:vars={{ gtmId }}>
+      {`(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':new Date().getTime(),event:'gtm.js'});
+      var f=d.getElementsByTagName(s)[0],j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';
+      j.async=true;j.src='https://www.googletagmanager.com/gtm.js?id='+i+dl;
+      f.parentNode.insertBefore(j,f);})(window,document,'script','dataLayer',gtmId);`}
+    </script>
+  )
+}
+
+{/* ---- GA4 (skip if GA4 is already deployed through GTM) ---- */}
+{
+  ga4Id && !gtmId && (
+    <>
+      <script is:inline async src={`https://www.googletagmanager.com/gtag/js?id=${ga4Id}`} />
+      <script is:inline define:vars={{ ga4Id }}>
+        {`window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}
+        gtag('js',new Date());gtag('config',ga4Id);`}
+      </script>
+    </>
+  )
+}
+
+{/* ---- CallRail Dynamic Number Insertion ---- */}
+{callRailSwapSrc && <script is:inline async src={callRailSwapSrc} />}
+
+{/* dataLayer must exist even without GTM so form events never throw. */}
+<script is:inline>
+  window.dataLayer = window.dataLayer || [];
+</script>

@@ -1,0 +1,10 @@
+---
+import Base from '../../layouts/Base.astro';
+import ThankYouBody from '../../components/ThankYouBody.astro';
+import { useTranslations } from '../../i18n/ui';
+const t = useTranslations('es');
+---
+
+<Base title={t.thankYou.title} noindex={true}>
+  <ThankYouBody lang="es" />
+</Base>

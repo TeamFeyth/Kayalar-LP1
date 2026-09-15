@@ -1,0 +1,265 @@
+---
+/**
+ * One runtime for every lead form on the page.
+ * Handles attribution capture, validation, submit, the Meta Lead event
+ * (with an event_id shared with the server so CAPI can de-duplicate later),
+ * and the per-form confirmation message from Section 3.
+ */
+import { site } from '../config/site';
+
+const config = {
+  endpoint: '/api/lead',
+  redirect: site.redirectAfterSubmit,
+  thankYouPath: site.thankYouPath,
+  phoneHref: site.phoneHref,
+};
+---
+
+<script define:vars={{ config }}>
+  (function () {
+    const STORE_KEY = 'km_attribution';
+
+    /* ---------- attribution ------------------------------------------- */
+
+    const PARAMS = [
+      'utm_source',
+      'utm_medium',
+      'utm_campaign',
+      'utm_content',
+      'utm_term',
+      'gclid',
+      'gbraid',
+      'wbraid',
+      'fbclid',
+      'msclkid',
+    ];
+
+    function readCookie(name) {
+      const hit = document.cookie.split('; ').find((c) => c.startsWith(name + '='));
+      return hit ? decodeURIComponent(hit.split('=').slice(1).join('=')) : '';
+    }
+
+    function attribution() {
+      let stored = {};
+      try {
+        stored = JSON.parse(sessionStorage.getItem(STORE_KEY) || '{}');
+      } catch (_) {
+        stored = {};
+      }
+
+      const qs = new URLSearchParams(window.location.search);
+      let dirty = false;
+      PARAMS.forEach((key) => {
+        const val = qs.get(key);
+        if (val && stored[key] !== val) {
+          stored[key] = val;
+          dirty = true;
+        }
+      });
+
+      if (!stored.referrer && document.referrer && !document.referrer.includes(location.host)) {
+        stored.referrer = document.referrer;
+        dirty = true;
+      }
+
+      if (dirty) {
+        try {
+          sessionStorage.setItem(STORE_KEY, JSON.stringify(stored));
+        } catch (_) {}
+      }
+      return stored;
+    }
+
+    function uuid() {
+      if (window.crypto && crypto.randomUUID) return crypto.randomUUID();
+      return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
+        const r = (Math.random() * 16) | 0;
+        const v = c === 'x' ? r : (r & 0x3) | 0x8;
+        return v.toString(16);
+      });
+    }
+
+    /* ---------- phone mask -------------------------------------------- */
+
+    function maskPhone(value) {
+      const d = value.replace(/\D/g, '').slice(0, 10);
+      if (d.length < 4) return d;
+      if (d.length < 7) return '(' + d.slice(0, 3) + ') ' + d.slice(3);
+      return '(' + d.slice(0, 3) + ') ' + d.slice(3, 6) + '-' + d.slice(6);
+    }
+
+    document.querySelectorAll('[data-phone-mask]').forEach(function (input) {
+      input.addEventListener('input', function () {
+        input.value = maskPhone(input.value);
+      });
+    });
+
+    /* ---------- validation -------------------------------------------- */
+
+    const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[a-z]{2,}$/i;
+
+    function setInvalid(field, invalid) {
+      const wrapper = field.closest('.field');
+      if (!wrapper) return;
+      if (invalid) {
+        wrapper.setAttribute('data-invalid', '');
+        field.setAttribute('aria-invalid', 'true');
+      } else {
+        wrapper.removeAttribute('data-invalid');
+        field.removeAttribute('aria-invalid');
+      }
+    }
+
+    function validate(form) {
+      let firstBad = null;
+
+      const name = form.elements['full_name'];
+      const okName = name.value.trim().split(/\s+/).filter(Boolean).length >= 2;
+      setInvalid(name, !okName);
+      if (!okName) firstBad = firstBad || name;
+
+      const email = form.elements['email'];
+      const okEmail = EMAIL_RE.test(email.value.trim());
+      setInvalid(email, !okEmail);
+      if (!okEmail) firstBad = firstBad || email;
+
+      const phone = form.elements['phone'];
+      const okPhone = phone.value.replace(/\D/g, '').length === 10;
+      setInvalid(phone, !okPhone);
+      if (!okPhone) firstBad = firstBad || phone;
+
+      ['existing_loan', 'pre_approval'].forEach(function (key) {
+        const select = form.elements[key];
+        if (!select) return;
+        const ok = !!select.value;
+        setInvalid(select, !ok);
+        if (!ok) firstBad = firstBad || select;
+      });
+
+      if (firstBad) {
+        firstBad.focus();
+        return false;
+      }
+      return true;
+    }
+
+    /* ---------- submit -------------------------------------------------- */
+
+    function fill(form, name, value) {
+      const el = form.elements[name];
+      if (el) el.value = value || '';
+    }
+
+    document.querySelectorAll('form[data-lead-form]').forEach(function (form) {
+      const wrapper = form.closest('[data-leadform-wrapper]');
+      const success = wrapper ? wrapper.querySelector('[data-success]') : null;
+      const networkError = form.querySelector('[data-network-error]');
+      const button = form.querySelector('[data-submit]');
+      const busyLabel = form.getAttribute('data-busy-label');
+      const idleLabel = button ? button.textContent : '';
+
+      form.addEventListener('submit', async function (event) {
+        event.preventDefault();
+        if (networkError) networkError.hidden = true;
+        if (!validate(form)) return;
+
+        const attr = attribution();
+        const eventId = uuid();
+
+        PARAMS.forEach(function (key) {
+          fill(form, key, attr[key]);
+        });
+        fill(form, 'referrer', attr.referrer || document.referrer);
+        fill(form, 'page_url', window.location.href);
+        fill(form, 'fbp', readCookie('_fbp'));
+        fill(form, 'fbc', readCookie('_fbc'));
+        fill(form, 'event_id', eventId);
+        fill(form, 'submitted_at', new Date().toISOString());
+
+        const payload = Object.fromEntries(new FormData(form).entries());
+        payload.tcpa_consent = form.elements['tcpa_consent'].checked ? 'yes' : 'no';
+
+        if (button) {
+          button.disabled = true;
+          if (busyLabel) button.textContent = busyLabel;
+        }
+
+        let ok = false;
+        try {
+          const res = await fetch(config.endpoint, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload),
+          });
+          ok = res.ok;
+        } catch (_) {
+          ok = false;
+        }
+
+        if (button) {
+          button.disabled = false;
+          if (busyLabel) button.textContent = idleLabel;
+        }
+
+        if (!ok) {
+          if (networkError) networkError.hidden = false;
+          return;
+        }
+
+        /* Meta Lead event — same event_id the server sends to CAPI. */
+        if (typeof window.fbq === 'function') {
+          window.fbq(
+            'track',
+            'Lead',
+            {
+              content_name: payload.vehicle_name || payload.form_id,
+              content_category: payload.landing_page,
+            },
+            { eventID: eventId }
+          );
+        }
+
+        window.dataLayer = window.dataLayer || [];
+        window.dataLayer.push({
+          event: 'lead_submit',
+          form_id: payload.form_id,
+          landing_page: payload.landing_page,
+          locale: payload.locale,
+          vehicle_name: payload.vehicle_name || undefined,
+          event_id: eventId,
+        });
+
+        if (config.redirect) {
+          const prefix = payload.locale === 'es' ? '/es' : '';
+          window.location.href = prefix + config.thankYouPath;
+          return;
+        }
+
+        form.hidden = true;
+        const head = wrapper ? wrapper.querySelector('.leadform__head') : null;
+        if (head) head.hidden = true;
+        if (success) {
+          success.hidden = false;
+          success.focus && success.focus();
+        }
+      });
+    });
+
+    /* ---------- phone click tracking ------------------------------------ */
+
+    document.querySelectorAll('a[href^="tel:"]').forEach(function (link) {
+      link.addEventListener('click', function () {
+        const eventId = uuid();
+        if (typeof window.fbq === 'function') {
+          window.fbq('track', 'Contact', { content_name: 'phone_click' }, { eventID: eventId });
+        }
+        window.dataLayer = window.dataLayer || [];
+        window.dataLayer.push({
+          event: 'phone_click',
+          link_url: link.getAttribute('href'),
+          event_id: eventId,
+        });
+      });
+    });
+  })();
+</script>

@@ -1,0 +1,333 @@
+---
+/**
+ * Section 5.4 — Pop-up banner.
+ * Desktop: exit-intent. Mobile: ~50% scroll depth. Once per session.
+ *
+ * The same dialog also serves the vehicle-specific popup (Lead Form 3) opened
+ * from a "Check Availability" card button. That path is user-initiated, so it
+ * ignores the once-per-session rule and pre-tags the lead with the vehicle.
+ */
+import LeadForm from './LeadForm.astro';
+import { useTranslations, type Lang } from '../i18n/ui';
+
+interface Props {
+  lang: Lang;
+}
+
+const { lang } = Astro.props;
+const t = useTranslations(lang);
+---
+
+<div class="popup" data-popup hidden>
+  <div class="popup__backdrop" data-popup-close></div>
+
+  <div
+    class="popup__dialog"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="popup-title"
+    tabindex="-1"
+    data-popup-dialog
+  >
+    <button type="button" class="popup__close" data-popup-close aria-label={t.popup.close}>
+      <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" focusable="false">
+        <path
+          d="M6 6l12 12M18 6L6 18"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"></path>
+      </svg>
+    </button>
+
+    <h2 id="popup-title" class="popup__title" data-popup-title>{t.popup.headline}</h2>
+    <p class="popup__body" data-popup-body>{t.popup.body}</p>
+
+    <p class="popup__vehicle" data-popup-vehicle hidden></p>
+
+    <div data-popup-pane="generic">
+      <LeadForm
+        formId="form_3_popup_generic"
+        lang={lang}
+        variant="plain"
+        submitLabel={t.popup.submit}
+        successBody={t.confirm.popupGeneric}
+      />
+    </div>
+
+    <div data-popup-pane="vehicle" hidden>
+      <LeadForm
+        formId="form_3_popup_vehicle"
+        lang={lang}
+        variant="plain"
+        vehicleAware={true}
+        submitLabel={t.popup.submit}
+        successBody={t.confirm.popupVehicle}
+      />
+    </div>
+  </div>
+</div>
+
+<script
+  define:vars={{
+    genericTitle: t.popup.headline,
+    genericBody: t.popup.body,
+    vehicleTitle: t.popup.vehicleHeadline,
+    vehicleBody: t.popup.vehicleBody,
+  }}
+>
+  (function () {
+    const root = document.querySelector('[data-popup]');
+    if (!root) return;
+
+    const dialog = root.querySelector('[data-popup-dialog]');
+    const titleEl = root.querySelector('[data-popup-title]');
+    const bodyEl = root.querySelector('[data-popup-body]');
+    const vehicleEl = root.querySelector('[data-popup-vehicle]');
+    const paneGeneric = root.querySelector('[data-popup-pane="generic"]');
+    const paneVehicle = root.querySelector('[data-popup-pane="vehicle"]');
+    const SEEN = 'km_popup_seen';
+
+    let lastFocused = null;
+    let open = false;
+
+    function seen() {
+      try {
+        return sessionStorage.getItem(SEEN) === '1';
+      } catch (_) {
+        return false;
+      }
+    }
+
+    function markSeen() {
+      try {
+        sessionStorage.setItem(SEEN, '1');
+      } catch (_) {}
+    }
+
+    function show(mode, vehicle) {
+      if (open) return;
+      open = true;
+      lastFocused = document.activeElement;
+
+      const isVehicle = mode === 'vehicle';
+      titleEl.textContent = isVehicle ? vehicleTitle : genericTitle;
+      bodyEl.textContent = isVehicle ? vehicleBody : genericBody;
+      paneGeneric.hidden = isVehicle;
+      paneVehicle.hidden = !isVehicle;
+
+      if (isVehicle && vehicle) {
+        vehicleEl.textContent = vehicle.name;
+        vehicleEl.hidden = false;
+        const form = paneVehicle.querySelector('form[data-lead-form]');
+        if (form) {
+          form.elements['vehicle_name'].value = vehicle.name || '';
+          form.elements['vehicle_id'].value = vehicle.id || '';
+          form.elements['vehicle_url'].value = vehicle.url || '';
+        }
+      } else {
+        vehicleEl.hidden = true;
+      }
+
+      root.hidden = false;
+      document.body.style.overflow = 'hidden';
+      requestAnimationFrame(function () {
+        root.setAttribute('data-open', '');
+        const firstInput = (isVehicle ? paneVehicle : paneGeneric).querySelector(
+          'input:not([type="hidden"]):not([tabindex="-1"])'
+        );
+        (firstInput || dialog).focus();
+      });
+
+      window.dataLayer = window.dataLayer || [];
+      window.dataLayer.push({
+        event: 'popup_open',
+        popup_mode: mode,
+        vehicle_name: vehicle ? vehicle.name : undefined,
+      });
+    }
+
+    function hide() {
+      if (!open) return;
+      open = false;
+      root.removeAttribute('data-open');
+      root.hidden = true;
+      document.body.style.overflow = '';
+      if (lastFocused && lastFocused.focus) lastFocused.focus();
+    }
+
+    root.querySelectorAll('[data-popup-close]').forEach(function (el) {
+      el.addEventListener('click', hide);
+    });
+
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape' && open) hide();
+    });
+
+    /* Keep tab focus inside the dialog while it is open. */
+    dialog.addEventListener('keydown', function (e) {
+      if (e.key !== 'Tab') return;
+      const focusables = dialog.querySelectorAll(
+        'a[href], button:not([disabled]), input:not([type="hidden"]):not([tabindex="-1"]), select, textarea'
+      );
+      const visible = Array.prototype.filter.call(focusables, function (el) {
+        return el.offsetParent !== null;
+      });
+      if (!visible.length) return;
+      const first = visible[0];
+      const last = visible[visible.length - 1];
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault();
+        first.focus();
+      }
+    });
+
+    /* --- Automatic triggers ------------------------------------------- */
+
+    const isTouch = window.matchMedia('(hover: none), (max-width: 860px)').matches;
+
+    if (isTouch) {
+      let fired = false;
+      window.addEventListener(
+        'scroll',
+        function () {
+          if (fired || seen()) return;
+          const doc = document.documentElement;
+          const max = doc.scrollHeight - window.innerHeight;
+          if (max <= 0) return;
+          if (window.scrollY / max >= 0.5) {
+            fired = true;
+            markSeen();
+            show('generic');
+          }
+        },
+        { passive: true }
+      );
+    } else {
+      document.addEventListener('mouseout', function (e) {
+        if (seen() || open) return;
+        if (e.relatedTarget || e.clientY > 8) return;
+        markSeen();
+        show('generic');
+      });
+    }
+
+    /* --- Manual triggers ----------------------------------------------- */
+
+    document.addEventListener('click', function (e) {
+      const trigger = e.target.closest('[data-popup-trigger]');
+      if (!trigger) return;
+      e.preventDefault();
+      markSeen();
+
+      if (trigger.hasAttribute('data-vehicle-name')) {
+        show('vehicle', {
+          name: trigger.getAttribute('data-vehicle-name'),
+          id: trigger.getAttribute('data-vehicle-id'),
+          url: trigger.getAttribute('data-vehicle-url'),
+        });
+      } else {
+        show('generic');
+      }
+    });
+
+    /* #popup-trigger in the address bar opens the generic popup. */
+    if (window.location.hash === '#popup-trigger') {
+      markSeen();
+      show('generic');
+    }
+  })();
+</script>
+
+<style>
+  .popup {
+    position: fixed;
+    inset: 0;
+    z-index: 120;
+    display: grid;
+    place-items: center;
+    padding: 20px;
+  }
+
+  .popup__backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(20, 18, 15, 0.62);
+    opacity: 0;
+    transition: opacity 0.18s ease;
+  }
+
+  .popup[data-open] .popup__backdrop {
+    opacity: 1;
+  }
+
+  .popup__dialog {
+    position: relative;
+    width: min(440px, 100%);
+    max-height: calc(100dvh - 40px);
+    overflow-y: auto;
+    background: var(--card);
+    border-radius: var(--radius);
+    padding: 30px 26px 26px;
+    box-shadow: 0 24px 60px rgba(20, 18, 15, 0.3);
+    opacity: 0;
+    transform: translateY(10px);
+    transition: opacity 0.18s ease, transform 0.18s ease;
+  }
+
+  .popup[data-open] .popup__dialog {
+    opacity: 1;
+    transform: none;
+  }
+
+  .popup__close {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    width: 34px;
+    height: 34px;
+    display: grid;
+    place-items: center;
+    border: 0;
+    border-radius: 50%;
+    background: transparent;
+    color: var(--graphite);
+    cursor: pointer;
+  }
+
+  .popup__close:hover {
+    background: var(--stone);
+    color: var(--ink);
+  }
+
+  .popup__title {
+    font-size: 24px;
+    margin: 0 0 8px;
+    padding-right: 30px;
+  }
+
+  .popup__body {
+    margin: 0 0 16px;
+    font-size: 14.5px;
+    color: var(--graphite);
+  }
+
+  .popup__vehicle {
+    margin: 0 0 16px;
+    padding: 10px 12px;
+    background: var(--stone);
+    border-left: 3px solid var(--red);
+    border-radius: 0 var(--radius) var(--radius) 0;
+    font-size: 14px;
+    font-weight: 600;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .popup__dialog {
+      transform: none;
+    }
+  }
+</style>

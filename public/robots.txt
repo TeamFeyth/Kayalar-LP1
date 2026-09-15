@@ -1,0 +1,9 @@
+# Paid-traffic landing page. Ads clicks only; keep it out of the index
+# so it never competes with kayalar-motors.com in organic search.
+User-agent: *
+Disallow: /
+
+# If the team decides they want it indexed, replace the two lines above with:
+# User-agent: *
+# Allow: /
+# Sitemap: https://REPLACE-WITH-FINAL-DOMAIN/sitemap.xml
