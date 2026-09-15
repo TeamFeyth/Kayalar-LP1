@@ -23,7 +23,14 @@ const t = useTranslations(lang);
           <li class="vcard">
             <div class="vcard__media">
               {v.image ? (
-                <img src={v.image} alt={v.name} loading="lazy" width="480" height="320" />
+                <img
+                  src={v.image}
+                  alt={v.name}
+                  width="960"
+                  height="720"
+                  loading="lazy"
+                  decoding="async"
+                />
               ) : (
                 <span class="vcard__placeholder">{t.vehicles.photoPending}</span>
               )}
@@ -101,7 +108,7 @@ const t = useTranslations(lang);
   }
 
   .vcard__media {
-    aspect-ratio: 3 / 2;
+    aspect-ratio: 4 / 3;
     background: var(--stone);
     display: grid;
     place-items: center;

@@ -12,7 +12,14 @@ const t = useTranslations(lang);
 <footer class="footer">
   <div class="wrap footer__inner">
     <div>
-      <p class="footer__brand">{site.brand}</p>
+      <img
+        class="footer__logo"
+        src="/images/logo.png"
+        alt={site.brand}
+        width="440"
+        height="134"
+        loading="lazy"
+      />
       <p class="footer__address">
         <a href={site.mapsUrl} target="_blank" rel="noopener noreferrer">{site.addressLine}</a>
         <span aria-hidden="true">/</span>
@@ -22,9 +29,10 @@ const t = useTranslations(lang);
       </p>
     </div>
 
-    <a class="footer__privacy" href={site.privacyUrl} target="_blank" rel="noopener noreferrer">
-      {t.footer.privacy}
-    </a>
+    <nav class="footer__legal" aria-label={t.footer.legalLabel}>
+      <a href={site.privacyUrl} target="_blank" rel="noopener noreferrer">{t.footer.privacy}</a>
+      <a href={site.termsUrl} target="_blank" rel="noopener noreferrer">{t.footer.terms}</a>
+    </nav>
   </div>
 
   <div class="wrap">
@@ -59,11 +67,10 @@ const t = useTranslations(lang);
     border-bottom: 1px solid rgba(250, 248, 244, 0.13);
   }
 
-  .footer__brand {
-    font-family: var(--font-display);
-    font-size: 17px;
-    color: var(--paper);
-    margin: 0 0 8px;
+  .footer__logo {
+    width: auto;
+    height: 34px;
+    margin-bottom: 14px;
   }
 
   .footer__address {
@@ -83,13 +90,19 @@ const t = useTranslations(lang);
     color: var(--paper);
   }
 
-  .footer__privacy {
+  .footer__legal {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 20px;
+  }
+
+  .footer__legal a {
     color: #b8b3a8;
     text-decoration: none;
     border-bottom: 1px solid rgba(250, 248, 244, 0.25);
   }
 
-  .footer__privacy:hover {
+  .footer__legal a:hover {
     color: var(--paper);
   }
 

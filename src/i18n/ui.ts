@@ -130,6 +130,8 @@ export const ui = {
     footer: {
       services: 'Sales · Service · Trade-In',
       privacy: 'Privacy Policy',
+      terms: 'Terms of Service',
+      legalLabel: 'Legal',
       bottomLine:
         '\u00A9 2026 Kayalar Motors. Family-owned for 30+ years. Member of TIADA & NIADA.',
     },
@@ -262,6 +264,8 @@ export const ui = {
     footer: {
       services: 'Ventas · Servicio · Intercambio',
       privacy: 'Pol\u00EDtica de Privacidad',
+      terms: 'T\u00E9rminos de Servicio',
+      legalLabel: 'Legal',
       bottomLine:
         '\u00A9 2026 Kayalar Motors. Negocio familiar por m\u00E1s de 30 a\u00F1os. Miembro de TIADA y NIADA.',
     },

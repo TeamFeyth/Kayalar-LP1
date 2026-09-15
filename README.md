@@ -110,9 +110,8 @@ For Google and Meta, point the Spanish ad groups directly at `/es/`.
 
 ## 5. Still missing (not blockers for the build)
 
-- **Hero image and vehicle photos.** Cards fall back to a neutral placeholder and
-  the hero image band is skipped entirely, so nothing looks broken. Drop files in
-  `public/images/` and set the paths in `src/data/vehicles.ts`. See
+- **Hero image.** Vehicle photos and the logo are in. The hero still falls back
+  to flat colour until `public/images/hero.jpg` exists. See
   `public/images/README.md`.
 - **Prices and mileage.** Listed as "recommended, not specified in source copy".
   `price: null` renders "Call for price".

@@ -20,6 +20,7 @@ export const site = {
     'https://www.google.com/maps/search/?api=1&query=16230+FM+529+Road+Houston+TX+77095',
 
   privacyUrl: 'https://kayalar-motors.com/privacy',
+  termsUrl: 'https://kayalar-motors.com/terms',
   mainSiteUrl: 'https://kayalar-motors.com',
 
   // Section 3 — thank-you route. The brief specifies per-form ON-PAGE

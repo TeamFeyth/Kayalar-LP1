@@ -1,13 +1,13 @@
 /**
  * Featured vehicles — Section 5.5 of the brief.
  *
- * `price`, `mileage` and `image` were listed as "recommended (not specified in
- * source copy)". They are left null on purpose: a null price renders the
- * "Call for price" label from the i18n dictionary, and a null image renders the
- * neutral placeholder. Fill them in when the client sends the assets.
+ * Photos supplied by the client and served from /public/images/vehicles/.
+ * They are 960x720 WebP (4:3, the source ratio) so the cards never crop the
+ * dealer watermark off the top-left or the badge off the bottom-right.
  *
- * Images go in /public/images/vehicles/ and are referenced as
- * "/images/vehicles/filename.jpg".
+ * `price` and `mileage` are still null: they were listed as "recommended (not
+ * specified in source copy)" and no figures have come back. A null price
+ * renders the "Call for price" label from the i18n dictionary.
  */
 
 export type Vehicle = {
@@ -36,7 +36,7 @@ export const vehicles: Vehicle[] = [
     url: 'https://kayalar-motors.com/vdp/23785724/Used-2023-Land-Rover-Range-Rover-Sport-P360-SE-for-sale-in-Houston-TX-77095',
     price: null,
     mileage: null,
-    image: null,
+    image: '/images/vehicles/range-rover-sport-p360-se.webp',
   },
   {
     id: '23869126',
@@ -48,7 +48,7 @@ export const vehicles: Vehicle[] = [
     url: 'https://kayalar-motors.com/vdp/23869126/Used-2022-Audi-Q7-Premium-Plus-55-TFSI-quattro-for-sale-in-Houston-TX-77095',
     price: null,
     mileage: null,
-    image: null,
+    image: '/images/vehicles/audi-q7-premium-plus.webp',
   },
   {
     id: '23869122',
@@ -60,7 +60,7 @@ export const vehicles: Vehicle[] = [
     url: 'https://kayalar-motors.com/vdp/23869122/Used-2020-Toyota-Camry-XSE-Auto-Natl-for-sale-in-Houston-TX-77095',
     price: null,
     mileage: null,
-    image: null,
+    image: '/images/vehicles/toyota-camry-xse.webp',
   },
   {
     id: '24073075',
@@ -72,7 +72,7 @@ export const vehicles: Vehicle[] = [
     url: 'https://kayalar-motors.com/vdp/24073075/Used-2020-Ford-Mustang-GT-Premium-Convertible-for-sale-in-Houston-TX-77095',
     price: null,
     mileage: null,
-    image: null,
+    image: '/images/vehicles/ford-mustang-gt-convertible.webp',
   },
   {
     id: '23860801',
@@ -84,7 +84,7 @@ export const vehicles: Vehicle[] = [
     url: 'https://kayalar-motors.com/vdp/23860801/Used-2022-Toyota-Tacoma-SR5-Double-Cab-5-Bed-I4-AT-Natl-for-sale-in-Houston-TX-77095',
     price: null,
     mileage: null,
-    image: null,
+    image: '/images/vehicles/toyota-tacoma-sr5.webp',
   },
   {
     id: '23211704',
@@ -96,6 +96,6 @@ export const vehicles: Vehicle[] = [
     url: 'https://kayalar-motors.com/vdp/23211704/Used-2021-GMC-Yukon-4WD-4dr-Denali-for-sale-in-Houston-TX-77095',
     price: null,
     mileage: null,
-    image: null,
+    image: '/images/vehicles/gmc-yukon-denali.webp',
   },
 ];
