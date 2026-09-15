@@ -5,9 +5,11 @@
  * They are 960x720 WebP (4:3, the source ratio) so the cards never crop the
  * dealer watermark off the top-left or the badge off the bottom-right.
  *
- * `price` and `mileage` are still null: they were listed as "recommended (not
- * specified in source copy)" and no figures have come back. A null price
- * renders the "Call for price" label from the i18n dictionary.
+ * `price` and `mileage` are transcribed from the dealer's own VDP pages
+ * (15 Sep 2026). They are plain display strings, so they read correctly in both
+ * EN and ES without locale formatting. Re-check them whenever inventory
+ * changes: a stale advertised price is the one error on this page that costs
+ * real money. A null price still falls back to the "Call for price" label.
  */
 
 export type Vehicle = {
@@ -34,8 +36,8 @@ export const vehicles: Vehicle[] = [
     trim: 'P360 SE',
     name: '2023 Land Rover Range Rover Sport P360 SE',
     url: 'https://kayalar-motors.com/vdp/23785724/Used-2023-Land-Rover-Range-Rover-Sport-P360-SE-for-sale-in-Houston-TX-77095',
-    price: null,
-    mileage: null,
+    price: '$58,999',
+    mileage: '59,284',
     image: '/images/vehicles/range-rover-sport-p360-se.webp',
   },
   {
@@ -46,8 +48,8 @@ export const vehicles: Vehicle[] = [
     trim: 'Premium Plus 55 TFSI quattro',
     name: '2022 Audi Q7 Premium Plus 55 TFSI quattro',
     url: 'https://kayalar-motors.com/vdp/23869126/Used-2022-Audi-Q7-Premium-Plus-55-TFSI-quattro-for-sale-in-Houston-TX-77095',
-    price: null,
-    mileage: null,
+    price: '$27,499',
+    mileage: '63,703',
     image: '/images/vehicles/audi-q7-premium-plus.webp',
   },
   {
@@ -58,8 +60,8 @@ export const vehicles: Vehicle[] = [
     trim: 'XSE Auto Natl',
     name: '2020 Toyota Camry XSE Auto Natl',
     url: 'https://kayalar-motors.com/vdp/23869122/Used-2020-Toyota-Camry-XSE-Auto-Natl-for-sale-in-Houston-TX-77095',
-    price: null,
-    mileage: null,
+    price: '$20,499',
+    mileage: '93,004',
     image: '/images/vehicles/toyota-camry-xse.webp',
   },
   {
@@ -70,8 +72,8 @@ export const vehicles: Vehicle[] = [
     trim: 'GT Premium Convertible',
     name: '2020 Ford Mustang GT Premium Convertible',
     url: 'https://kayalar-motors.com/vdp/24073075/Used-2020-Ford-Mustang-GT-Premium-Convertible-for-sale-in-Houston-TX-77095',
-    price: null,
-    mileage: null,
+    price: '$24,999',
+    mileage: '81,719',
     image: '/images/vehicles/ford-mustang-gt-convertible.webp',
   },
   {
@@ -82,8 +84,8 @@ export const vehicles: Vehicle[] = [
     trim: "SR5 Double Cab 5' Bed I4 AT Natl",
     name: "2022 Toyota Tacoma SR5 Double Cab 5' Bed I4 AT Natl",
     url: 'https://kayalar-motors.com/vdp/23860801/Used-2022-Toyota-Tacoma-SR5-Double-Cab-5-Bed-I4-AT-Natl-for-sale-in-Houston-TX-77095',
-    price: null,
-    mileage: null,
+    price: '$28,999',
+    mileage: '53,378',
     image: '/images/vehicles/toyota-tacoma-sr5.webp',
   },
   {
@@ -94,8 +96,8 @@ export const vehicles: Vehicle[] = [
     trim: '4WD 4dr Denali',
     name: '2021 GMC Yukon 4WD 4dr Denali',
     url: 'https://kayalar-motors.com/vdp/23211704/Used-2021-GMC-Yukon-4WD-4dr-Denali-for-sale-in-Houston-TX-77095',
-    price: null,
-    mileage: null,
+    price: '$39,999',
+    mileage: '97,516',
     image: '/images/vehicles/gmc-yukon-denali.webp',
   },
 ];
