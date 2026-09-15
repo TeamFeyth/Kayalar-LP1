@@ -114,21 +114,30 @@ const t = useTranslations(lang);
   }
 
   /* Floating call button — mobile only, sits above the fold on scroll. */
+  /* `left: 50%` capped the button's available width at half the screen, which
+     wrapped the phone number onto a second line. Anchoring both edges and
+     centring with auto margins lets it size to its content instead. */
   .floatcall {
     position: fixed;
-    left: 50%;
-    transform: translateX(-50%);
-    bottom: 16px;
+    left: 0;
+    right: 0;
+    bottom: calc(14px + env(safe-area-inset-bottom, 0px));
     z-index: 90;
     display: none;
+    width: fit-content;
+    max-width: calc(100% - 28px);
+    margin-inline: auto;
     align-items: center;
-    gap: 8px;
-    padding: 14px 24px;
+    justify-content: center;
+    gap: 7px;
+    padding: 12px 20px;
     border-radius: 999px;
     background: var(--red);
     color: #fff;
-    font-size: 15px;
+    font-size: 14.5px;
     font-weight: 600;
+    line-height: 1;
+    white-space: nowrap;
     text-decoration: none;
     box-shadow: 0 8px 24px rgba(20, 18, 15, 0.28);
   }

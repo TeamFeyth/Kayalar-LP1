@@ -252,6 +252,13 @@ const t = useTranslations(lang);
     padding: 20px;
   }
 
+  /* An author `display` rule outranks the `hidden` attribute's UA style, so
+     without this the closed dialog stays in the layout as a full-viewport
+     transparent sheet and swallows every click on the page. */
+  .popup[hidden] {
+    display: none;
+  }
+
   .popup__backdrop {
     position: absolute;
     inset: 0;
