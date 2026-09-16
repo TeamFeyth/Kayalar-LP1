@@ -122,6 +122,13 @@ async function sendToMetaCapi(lead, env, request) {
     ],
   };
 
+  // Events Manager > Test Events only shows server events when this code is
+  // attached. Leave META_TEST_EVENT_CODE unset in production: while it is set,
+  // Meta treats the traffic as test data and it does not feed optimisation.
+  if (env.META_TEST_EVENT_CODE) {
+    payload.test_event_code = env.META_TEST_EVENT_CODE;
+  }
+
   try {
     const res = await fetch(
       `https://graph.facebook.com/v21.0/${pixelId}/events?access_token=${encodeURIComponent(token)}`,
@@ -131,7 +138,11 @@ async function sendToMetaCapi(lead, env, request) {
         body: JSON.stringify(payload),
       }
     );
-    return { attempted: true, ok: res.ok, status: res.status };
+    if (!res.ok) {
+      const detail = await res.text().catch(() => '');
+      return { attempted: true, ok: false, status: res.status, detail: detail.slice(0, 500) };
+    }
+    return { attempted: true, ok: true, status: res.status, testMode: !!env.META_TEST_EVENT_CODE };
   } catch (err) {
     return { attempted: true, ok: false, error: String(err) };
   }
