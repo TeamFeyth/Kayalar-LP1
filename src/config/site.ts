@@ -43,6 +43,10 @@ export const tracking = {
   // is present, so the build is safe to deploy today and stays safe later.
   gtmId: import.meta.env.PUBLIC_GTM_ID || '',            // e.g. GTM-XXXXXXX
   ga4Id: import.meta.env.PUBLIC_GA4_ID || '',            // e.g. G-XXXXXXXXXX
-  callRailSwapSrc: import.meta.env.PUBLIC_CALLRAIL_SWAP_SRC || '', // //cdn.callrail.com/companies/.../swap.js
+  // Supplied in the brief (Section 4). LP1 only — LP2's CallRail field is still
+  // blank, so that project keeps an empty default and renders no tag.
+  callRailSwapSrc:
+    import.meta.env.PUBLIC_CALLRAIL_SWAP_SRC ||
+    '//cdn.callrail.com/companies/357324316/48d41d9d83314e44f676/12/swap.js',
   searchConsoleToken: import.meta.env.PUBLIC_GSC_VERIFICATION || '',
 } as const;

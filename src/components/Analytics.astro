@@ -63,8 +63,24 @@ const { metaPixelId, gtmId, ga4Id, callRailSwapSrc, searchConsoleToken } = track
   )
 }
 
-{/* ---- CallRail Dynamic Number Insertion ---- */}
-{callRailSwapSrc && <script is:inline async src={callRailSwapSrc} />}
+{/* ---- CallRail Dynamic Number Insertion ----
+     Loaded without `async` on purpose. swap.js rewrites the phone numbers and
+     the tel: links, and the numbers here sit above the fold, including the
+     floating call button on mobile. Loaded async on a slow connection it can
+     land after first paint, which means a tap in that window dials the static
+     number and the call goes unattributed — the one thing CallRail is here to
+     prevent. The preconnect below covers most of the cost of loading it early.
+     If PageSpeed ever makes this a problem, adding `async` back is a one-word
+     change. */}
+{
+  callRailSwapSrc && (
+    <>
+      <link rel="preconnect" href="https://cdn.callrail.com" />
+      <link rel="dns-prefetch" href="https://cdn.callrail.com" />
+      <script is:inline src={callRailSwapSrc} />
+    </>
+  )
+}
 
 {/* dataLayer must exist even without GTM so form events never throw. */}
 <script is:inline>
