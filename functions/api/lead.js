@@ -52,6 +52,35 @@ function validate(body) {
   return errors;
 }
 
+/**
+ * Cloudflare Turnstile.
+ *
+ * Deliberately fails OPEN if Cloudflare's verify endpoint is unreachable: on a
+ * paid-traffic page, losing real leads to someone else's outage is worse than
+ * letting a bot through. It only fails CLOSED on a token Cloudflare actively
+ * rejects, and only when TURNSTILE_ENFORCE is not "false".
+ */
+async function verifyTurnstile(token, env, request) {
+  if (!env.TURNSTILE_SECRET_KEY) return { checked: false, reason: 'not configured' };
+
+  const form = new URLSearchParams();
+  form.append('secret', env.TURNSTILE_SECRET_KEY);
+  form.append('response', token || '');
+  const ip = request.headers.get('CF-Connecting-IP');
+  if (ip) form.append('remoteip', ip);
+
+  try {
+    const res = await fetch('https://challenges.cloudflare.com/turnstile/v0/siteverify', {
+      method: 'POST',
+      body: form,
+    });
+    const data = await res.json();
+    return { checked: true, ok: !!data.success, codes: data['error-codes'] || [] };
+  } catch (err) {
+    return { checked: true, ok: true, failOpen: true, error: String(err) };
+  }
+}
+
 async function sendToCrm(lead, env) {
   if (!env.CRM_ENDPOINT) return { attempted: false, ok: false, reason: 'CRM_ENDPOINT not set' };
 
@@ -159,6 +188,15 @@ export async function onRequestPost({ request, env }) {
   // Honeypot: a filled hidden field means a bot. Answer 200 so it moves on.
   if (body.company_website) return json({ ok: true, ignored: true });
 
+  const turnstile = await verifyTurnstile(body['cf-turnstile-response'], env, request);
+  if (turnstile.checked && !turnstile.ok) {
+    if (env.TURNSTILE_ENFORCE !== 'false') {
+      return json({ ok: false, error: 'failed_bot_check' }, 403);
+    }
+    // Monitor mode: log what would have been blocked, but let the lead through.
+    console.log('KAYALAR_TURNSTILE_WOULD_BLOCK', JSON.stringify(turnstile.codes));
+  }
+
   const errors = validate(body);
   if (errors.length) return json({ ok: false, error: 'validation', fields: errors }, 422);
 
@@ -225,6 +263,7 @@ export async function onRequestPost({ request, env }) {
   return json({
     ok: true,
     event_id: lead.event_id,
+    turnstile: turnstile,
     delivery: { crm, backup, capi },
     lead: env.LEAD_DEBUG === 'true' ? lead : undefined,
   });

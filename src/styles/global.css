@@ -35,6 +35,11 @@ html {
   -webkit-text-size-adjust: 100%;
 }
 
+/* Scrolled-to sections would otherwise land underneath the sticky top bar. */
+[id] {
+  scroll-margin-top: 84px;
+}
+
 body {
   margin: 0;
   background: var(--paper);

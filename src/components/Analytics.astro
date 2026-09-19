@@ -6,7 +6,7 @@
  * renders only when its env var is filled in, so nothing breaks while those
  * fields are still "(blank)".
  */
-import { tracking } from '../config/site';
+import { site, tracking } from '../config/site';
 
 const { metaPixelId, gtmId, ga4Id, callRailSwapSrc, searchConsoleToken } = tracking;
 ---
@@ -78,6 +78,37 @@ const { metaPixelId, gtmId, ga4Id, callRailSwapSrc, searchConsoleToken } = track
       <link rel="preconnect" href="https://cdn.callrail.com" />
       <link rel="dns-prefetch" href="https://cdn.callrail.com" />
       <script is:inline src={callRailSwapSrc} />
+    </>
+  )
+}
+
+{/* ---- Cloudflare Turnstile ----
+     Rendered explicitly rather than by class scan, because two of the four
+     forms live inside the pop-up and are hidden at load. Explicit rendering
+     issues a token for those too, so a visitor who opens the pop-up and submits
+     straight away is never held up waiting for a challenge to start.
+     The callback is defined before the library so it exists when it loads. */}
+{
+  site.turnstileSiteKey && (
+    <>
+      <script is:inline>
+        {`window.__kmTurnstileReady = function () {
+          document.querySelectorAll('[data-turnstile]').forEach(function (el) {
+            if (el.dataset.rendered) return;
+            el.dataset.rendered = '1';
+            window.turnstile.render(el, {
+              sitekey: el.getAttribute('data-sitekey'),
+              'refresh-expired': 'auto',
+            });
+          });
+        };`}
+      </script>
+      <script
+        is:inline
+        async
+        defer
+        src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit&onload=__kmTurnstileReady"
+      />
     </>
   )
 }

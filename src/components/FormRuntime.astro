@@ -12,6 +12,7 @@ const config = {
   redirect: site.redirectAfterSubmit,
   thankYouPath: site.thankYouPath,
   phoneHref: site.phoneHref,
+  turnstile: !!site.turnstileSiteKey,
 };
 ---
 
@@ -176,6 +177,19 @@ const config = {
         fill(form, 'event_id', eventId);
         fill(form, 'submitted_at', new Date().toISOString());
 
+        // Turnstile drops its token into a hidden field inside the form. It is
+        // usually there already; if the widget is still solving, wait briefly
+        // rather than sending an empty token.
+        if (config.turnstile) {
+          for (var i = 0; i < 30; i++) {
+            var tf = form.elements['cf-turnstile-response'];
+            if (tf && tf.value) break;
+            await new Promise(function (r) {
+              setTimeout(r, 100);
+            });
+          }
+        }
+
         const payload = Object.fromEntries(new FormData(form).entries());
         payload.tcpa_consent = form.elements['tcpa_consent'].checked ? 'yes' : 'no';
 
@@ -229,6 +243,27 @@ const config = {
           event_id: eventId,
         });
 
+        /* Conversions are counted off a thank-you pageview, but the address bar
+           has to stay put. So the thank-you page is reported to GTM as a
+           virtual pageview while the browser stays exactly where it is. The
+           path matches the real /thank-you route, so the same GTM trigger works
+           whether or not PUBLIC_REDIRECT_AFTER_SUBMIT is ever switched on. */
+        const thankYouPath = (payload.locale === 'es' ? '/es' : '') + config.thankYouPath;
+        window.dataLayer.push({
+          event: 'virtual_pageview',
+          virtual_page_path: thankYouPath,
+          virtual_page_location: window.location.origin + thankYouPath,
+          virtual_page_title: 'Thank You - Lead Submitted',
+          form_id: payload.form_id,
+          landing_page: payload.landing_page,
+          locale: payload.locale,
+          vehicle_name: payload.vehicle_name || undefined,
+          event_id: eventId,
+        });
+
+        // Someone who just converted should never see the exit-intent pop-up.
+        window.__kmEngaged = true;
+
         if (config.redirect) {
           const prefix = payload.locale === 'es' ? '/es' : '';
           window.location.href = prefix + config.thankYouPath;
@@ -243,6 +278,31 @@ const config = {
           success.focus && success.focus();
         }
       });
+    });
+
+    /* ---------- in-page anchors ------------------------------------------
+       Native anchor navigation appends #section to the address bar. The brief
+       asks that the URL never change while someone moves around the page, so
+       these are scrolled by hand instead. Focus still follows the scroll, which
+       keeps the skip link working for keyboard and screen-reader users. */
+
+    var reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    document.addEventListener('click', function (e) {
+      var link = e.target.closest && e.target.closest('a[href^="#"]');
+      if (!link) return;
+
+      var id = link.getAttribute('href').slice(1);
+      if (!id) return;
+
+      var target = document.getElementById(id);
+      if (!target) return;
+
+      e.preventDefault();
+      target.scrollIntoView({ behavior: reduceMotion ? 'auto' : 'smooth', block: 'start' });
+
+      if (!target.hasAttribute('tabindex')) target.setAttribute('tabindex', '-1');
+      target.focus({ preventScroll: true });
     });
 
     /* ---------- phone click tracking ------------------------------------ */

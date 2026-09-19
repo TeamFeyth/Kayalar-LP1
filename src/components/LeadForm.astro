@@ -173,6 +173,12 @@ const [consentBefore, consentAfter] = f.consent.split(f.consentLinkText);
     <input type="hidden" name="event_id" value="" />
     <input type="hidden" name="submitted_at" value="" />
 
+    {
+      site.turnstileSiteKey && (
+        <div class="turnstile" data-turnstile data-sitekey={site.turnstileSiteKey} />
+      )
+    }
+
     <button type="submit" class="btn btn--primary btn--block" data-submit>
       {submitLabel || f.submit}
     </button>
@@ -303,6 +309,11 @@ const [consentBefore, consentAfter] = f.consent.split(f.consentLinkText);
 
   .consent a {
     color: var(--red);
+  }
+
+  /* Empty until Turnstile renders, and stays empty in invisible mode. */
+  .turnstile:not(:empty) {
+    margin-bottom: 14px;
   }
 
   .hp {

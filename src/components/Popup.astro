@@ -8,6 +8,7 @@
  * ignores the once-per-session rule and pre-tags the lead with the vehicle.
  */
 import LeadForm from './LeadForm.astro';
+import { site } from '../config/site';
 import { useTranslations, type Lang } from '../i18n/ui';
 
 interface Props {
@@ -70,6 +71,7 @@ const t = useTranslations(lang);
 
 <script
   define:vars={{
+    delayMs: site.popupDelayMs,
     genericTitle: t.popup.headline,
     genericBody: t.popup.body,
     vehicleTitle: t.popup.vehicleHeadline,
@@ -90,6 +92,32 @@ const t = useTranslations(lang);
 
     let lastFocused = null;
     let open = false;
+
+    /* The pop-up must not interrupt someone who is already filling in a form,
+       and must not fire the instant the page loads. Both automatic triggers
+       check these two gates; the "Check Availability" buttons ignore them,
+       because there the visitor asked for it. */
+    const armedAt = Date.now() + delayMs;
+
+    window.__kmEngaged = window.__kmEngaged || false;
+    document.addEventListener(
+      'input',
+      function (e) {
+        if (e.target && e.target.closest && e.target.closest('form[data-lead-form]')) {
+          window.__kmEngaged = true;
+        }
+      },
+      true
+    );
+
+    function blocked() {
+      if (Date.now() < armedAt) return true;
+      if (window.__kmEngaged) return true;
+      // Opening the dialog while a field has focus would yank it away.
+      const ae = document.activeElement;
+      if (ae && ae.closest && ae.closest('form[data-lead-form]')) return true;
+      return false;
+    }
 
     function seen() {
       try {
@@ -194,7 +222,7 @@ const t = useTranslations(lang);
       window.addEventListener(
         'scroll',
         function () {
-          if (fired || seen()) return;
+          if (fired || seen() || blocked()) return;
           const doc = document.documentElement;
           const max = doc.scrollHeight - window.innerHeight;
           if (max <= 0) return;
@@ -208,7 +236,7 @@ const t = useTranslations(lang);
       );
     } else {
       document.addEventListener('mouseout', function (e) {
-        if (seen() || open) return;
+        if (seen() || open || blocked()) return;
         if (e.relatedTarget || e.clientY > 8) return;
         markSeen();
         show('generic');
