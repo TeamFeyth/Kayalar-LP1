@@ -41,7 +41,9 @@ export const tracking = {
 
   // Still "(blank)" in the brief. Each snippet renders only when its value
   // is present, so the build is safe to deploy today and stays safe later.
-  gtmId: import.meta.env.PUBLIC_GTM_ID || '',            // e.g. GTM-XXXXXXX
+  // Supplied in the brief (Section 4). LP1 has its own container, separate
+  // from the other landing page, so the two stay independent in GTM.
+  gtmId: import.meta.env.PUBLIC_GTM_ID || 'GTM-P82QQLJ8',
   ga4Id: import.meta.env.PUBLIC_GA4_ID || '',            // e.g. G-XXXXXXXXXX
   // Supplied in the brief (Section 4). LP1 only — LP2's CallRail field is still
   // blank, so that project keeps an empty default and renders no tag.
