@@ -9,8 +9,10 @@ interface Props {
 const { lang } = Astro.props;
 const t = useTranslations(lang);
 
-// Supplied by the client: the service team under a vehicle on the lift.
-const heroImage: string | null = '/images/hero.webp';
+// No hero image: the brief calls for nothing between the header and the
+// inventory, so the band is skipped and the hero stays on flat paper.
+// Setting a path here brings the band back with no other change.
+const heroImage: string | null = null;
 ---
 
 <section class="hero">

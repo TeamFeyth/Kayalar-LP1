@@ -101,7 +101,7 @@ export const ui = {
 
     why: {
       heading: 'Delivering Top Rated Service.',
-      photoAlt: 'The Kayalar Motors lot in Houston, Texas',
+      photoAlt: 'The Kayalar Motors service team in the shop',
       bullets: [
         '300-point inspection by our ASE-certified technicians.',
         '30+ years of experience in the auto business.',
@@ -236,7 +236,7 @@ export const ui = {
 
     why: {
       heading: 'Servicio de primera, siempre.',
-      photoAlt: 'El lote de Kayalar Motors en Houston, Texas',
+      photoAlt: 'El equipo de servicio de Kayalar Motors en el taller',
       bullets: [
         'Inspecci\u00F3n de 300 puntos por nuestros t\u00E9cnicos certificados ASE.',
         'M\u00E1s de 30 a\u00F1os de experiencia en el ramo automotriz.',
