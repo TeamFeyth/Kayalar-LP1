@@ -10,7 +10,18 @@ const t = useTranslations(lang);
 
 <section class="section section--ink" id="why-us">
   <div class="wrap why__inner">
-    <h2>{t.why.heading}</h2>
+    <div class="why__intro">
+      <h2>{t.why.heading}</h2>
+      <img
+        class="why__photo"
+        src="/images/service-lot.webp"
+        alt={t.why.photoAlt}
+        width="900"
+        height="506"
+        loading="lazy"
+        decoding="async"
+      />
+    </div>
 
     <ul class="why__list">
       {
@@ -45,6 +56,14 @@ const t = useTranslations(lang);
   .why__inner h2 {
     margin: 0;
     color: var(--paper);
+  }
+
+  .why__photo {
+    width: 100%;
+    height: auto;
+    margin-top: 22px;
+    border-radius: var(--radius);
+    border: 1px solid rgba(250, 248, 244, 0.14);
   }
 
   .why__list {

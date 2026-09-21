@@ -249,24 +249,34 @@ const config = {
            path matches the real /thank-you route, so the same GTM trigger works
            whether or not PUBLIC_REDIRECT_AFTER_SUBMIT is ever switched on. */
         const thankYouPath = (payload.locale === 'es' ? '/es' : '') + config.thankYouPath;
-        window.dataLayer.push({
-          event: 'virtual_pageview',
-          virtual_page_path: thankYouPath,
-          virtual_page_location: window.location.origin + thankYouPath,
-          virtual_page_title: 'Thank You - Lead Submitted',
-          form_id: payload.form_id,
-          landing_page: payload.landing_page,
-          locale: payload.locale,
-          vehicle_name: payload.vehicle_name || undefined,
-          event_id: eventId,
-        });
+
+        /* Only when we are NOT navigating. With the redirect on, the thank-you
+           page fires a real pageview of its own, and pushing this as well would
+           make GTM count the same conversion twice. */
+        if (!config.redirect) {
+          window.dataLayer.push({
+            event: 'virtual_pageview',
+            virtual_page_path: thankYouPath,
+            virtual_page_location: window.location.origin + thankYouPath,
+            virtual_page_title: 'Thank You - Lead Submitted',
+            form_id: payload.form_id,
+            landing_page: payload.landing_page,
+            locale: payload.locale,
+            vehicle_name: payload.vehicle_name || undefined,
+            event_id: eventId,
+          });
+        }
 
         // Someone who just converted should never see the exit-intent pop-up.
         window.__kmEngaged = true;
 
         if (config.redirect) {
-          const prefix = payload.locale === 'es' ? '/es' : '';
-          window.location.href = prefix + config.thankYouPath;
+          /* Give the Meta Lead event and any GTM tags a moment to actually
+             leave the browser. Navigating the instant after a dataLayer push
+             can cut a tag off mid-request and lose the conversion. */
+          setTimeout(function () {
+            window.location.href = thankYouPath;
+          }, 400);
           return;
         }
 

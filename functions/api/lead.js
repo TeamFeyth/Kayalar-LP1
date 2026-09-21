@@ -177,7 +177,7 @@ async function sendToMetaCapi(lead, env, request) {
   }
 }
 
-export async function onRequestPost({ request, env }) {
+export async function onRequestPost({ request, env, waitUntil }) {
   let body;
   try {
     body = await request.json();
@@ -246,26 +246,63 @@ export async function onRequestPost({ request, env }) {
     user_agent: request.headers.get('User-Agent') || '',
   };
 
-  const [crm, backup, capi] = await Promise.all([
+  /**
+   * The three deliveries used to be awaited before answering the browser, so
+   * the visitor sat waiting for all of them. The CRM hop is an Apps Script web
+   * app: cold start, then a spreadsheet write, then an email send, commonly
+   * three to eight seconds. That was the form latency.
+   *
+   * They now run on waitUntil, which keeps the worker alive after the response
+   * is sent. The browser hears back as soon as the lead is validated, and
+   * nothing is dropped. No information is lost either: the response never
+   * reported delivery to the visitor anyway, failures are logged, and the
+   * Google Sheet is the durable record.
+   */
+  const deliver = Promise.all([
     sendToCrm(lead, env),
     sendToBackup(lead, env),
     sendToMetaCapi(lead, env, request),
-  ]);
+  ]).then(function (results) {
+    const crm = results[0];
+    const backup = results[1];
+    const capi = results[2];
 
-  // Until CRM_ENDPOINT is filled in, this line is the lead's only trail.
-  // Cloudflare Pages > Deployment > Functions > Real-time logs.
-  if (!crm.ok) {
-    console.log('KAYALAR_LEAD_UNDELIVERED', JSON.stringify({ lead, crm, backup }));
-  } else {
-    console.log('KAYALAR_LEAD', lead.form_id, lead.email, lead.vehicle_name || '-');
+    // Until CRM_ENDPOINT is filled in, this line is the lead's only trail.
+    // Cloudflare Pages > Deployment > Functions > Real-time logs.
+    if (!crm.ok) {
+      console.log('KAYALAR_LEAD_UNDELIVERED', JSON.stringify({ lead, crm, backup }));
+    } else {
+      console.log(
+        'KAYALAR_LEAD',
+        lead.form_id,
+        lead.email,
+        lead.vehicle_name || '-',
+        'capi:' + (capi.ok ? 'ok' : capi.reason || 'failed')
+      );
+    }
+    return { crm: crm, backup: backup, capi: capi };
+  });
+
+  // Debug mode, and local dev where waitUntil does not exist, wait for the
+  // result so the response can report it.
+  if (env.LEAD_DEBUG === 'true' || typeof waitUntil !== 'function') {
+    const delivery = await deliver;
+    return json({
+      ok: true,
+      event_id: lead.event_id,
+      turnstile: turnstile,
+      delivery: delivery,
+      lead: env.LEAD_DEBUG === 'true' ? lead : undefined,
+    });
   }
+
+  waitUntil(deliver);
 
   return json({
     ok: true,
     event_id: lead.event_id,
     turnstile: turnstile,
-    delivery: { crm, backup, capi },
-    lead: env.LEAD_DEBUG === 'true' ? lead : undefined,
+    queued: true,
   });
 }
 

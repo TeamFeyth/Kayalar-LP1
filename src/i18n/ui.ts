@@ -32,7 +32,7 @@ export const ui = {
       ctaSecondary: 'Call 832-966-7907',
       formHeading: 'Check availability',
       formSub: 'A few quick questions, and we\u2019ll get back to you today.',
-      imageAlt: 'Kayalar Motors lot in Houston, Texas',
+      imageAlt: 'The Kayalar Motors service team in the shop',
     },
 
     stats: [
@@ -101,6 +101,7 @@ export const ui = {
 
     why: {
       heading: 'Delivering Top Rated Service.',
+      photoAlt: 'The Kayalar Motors lot in Houston, Texas',
       bullets: [
         '300-point inspection by our ASE-certified technicians.',
         '30+ years of experience in the auto business.',
@@ -166,7 +167,7 @@ export const ui = {
       ctaSecondary: 'Llame al 832-966-7907',
       formHeading: 'Consulte disponibilidad',
       formSub: 'Unas preguntas r\u00E1pidas y le respondemos hoy mismo.',
-      imageAlt: 'Lote de Kayalar Motors en Houston, Texas',
+      imageAlt: 'El equipo de servicio de Kayalar Motors en el taller',
     },
 
     stats: [
@@ -235,6 +236,7 @@ export const ui = {
 
     why: {
       heading: 'Servicio de primera, siempre.',
+      photoAlt: 'El lote de Kayalar Motors en Houston, Texas',
       bullets: [
         'Inspecci\u00F3n de 300 puntos por nuestros t\u00E9cnicos certificados ASE.',
         'M\u00E1s de 30 a\u00F1os de experiencia en el ramo automotriz.',

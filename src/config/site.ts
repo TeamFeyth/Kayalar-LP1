@@ -23,11 +23,12 @@ export const site = {
   termsUrl: 'https://kayalar-motors.com/terms',
   mainSiteUrl: 'https://kayalar-motors.com',
 
-  // Section 3 — thank-you route. The brief specifies per-form ON-PAGE
-  // confirmation messages, so the redirect is OFF by default. Flip
-  // PUBLIC_REDIRECT_AFTER_SUBMIT to "true" to redirect to /thank-you instead.
+  // Thank-you route. Every submit now lands here, so leads are counted off a
+  // real pageview instead of an in-page event, which is easier to verify and
+  // harder to lose. The per-form confirmation messages from Section 3 are still
+  // built and still used if PUBLIC_REDIRECT_AFTER_SUBMIT is set to "false".
   thankYouPath: '/thank-you',
-  redirectAfterSubmit: import.meta.env.PUBLIC_REDIRECT_AFTER_SUBMIT === 'true',
+  redirectAfterSubmit: import.meta.env.PUBLIC_REDIRECT_AFTER_SUBMIT !== 'false',
 
   // Section 5.3, field 6 — TCPA consent checkbox default state.
   // The brief says "pre-checked by default". See README for the legal note.

@@ -9,10 +9,8 @@ interface Props {
 const { lang } = Astro.props;
 const t = useTranslations(lang);
 
-// Set this to '/images/hero.jpg' once the photo lands in /public/images/.
-// While it is null the image band is skipped, so the page never shows an
-// empty grey strip where the hero shot should be.
-const heroImage: string | null = null;
+// Supplied by the client: the service team under a vehicle on the lift.
+const heroImage: string | null = '/images/hero.webp';
 ---
 
 <section class="hero">
