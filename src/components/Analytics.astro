@@ -13,6 +13,12 @@ const { metaPixelId, gtmId, ga4Id, callRailSwapSrc, searchConsoleToken } = track
 
 {searchConsoleToken && <meta name="google-site-verification" content={searchConsoleToken} />}
 
+{/* NOTE: the bodies of these is:inline scripts are raw JavaScript, never
+    wrapped in a {`...`} template literal. With is:inline, Astro copies the
+    contents verbatim, so the wrapper gets emitted literally and turns the whole
+    snippet into an inert string. It parses cleanly and silently does nothing.
+    Keep the Meta Pixel block below as the reference for the correct shape. */}
+
 {/* ---- Meta Pixel ---- */}
 <script is:inline define:vars={{ metaPixelId }}>
   !(function (f, b, e, v, n, t, s) {
@@ -42,10 +48,16 @@ const { metaPixelId, gtmId, ga4Id, callRailSwapSrc, searchConsoleToken } = track
 {
   gtmId && (
     <script is:inline define:vars={{ gtmId }}>
-      {`(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':new Date().getTime(),event:'gtm.js'});
-      var f=d.getElementsByTagName(s)[0],j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';
-      j.async=true;j.src='https://www.googletagmanager.com/gtm.js?id='+i+dl;
-      f.parentNode.insertBefore(j,f);})(window,document,'script','dataLayer',gtmId);`}
+      (function (w, d, s, l, i) {
+        w[l] = w[l] || [];
+        w[l].push({ 'gtm.start': new Date().getTime(), event: 'gtm.js' });
+        var f = d.getElementsByTagName(s)[0],
+          j = d.createElement(s),
+          dl = l != 'dataLayer' ? '&l=' + l : '';
+        j.async = true;
+        j.src = 'https://www.googletagmanager.com/gtm.js?id=' + i + dl;
+        f.parentNode.insertBefore(j, f);
+      })(window, document, 'script', 'dataLayer', gtmId);
     </script>
   )
 }
@@ -56,8 +68,12 @@ const { metaPixelId, gtmId, ga4Id, callRailSwapSrc, searchConsoleToken } = track
     <>
       <script is:inline async src={`https://www.googletagmanager.com/gtag/js?id=${ga4Id}`} />
       <script is:inline define:vars={{ ga4Id }}>
-        {`window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}
-        gtag('js',new Date());gtag('config',ga4Id);`}
+        window.dataLayer = window.dataLayer || [];
+        function gtag() {
+          dataLayer.push(arguments);
+        }
+        gtag('js', new Date());
+        gtag('config', ga4Id);
       </script>
     </>
   )
@@ -92,7 +108,7 @@ const { metaPixelId, gtmId, ga4Id, callRailSwapSrc, searchConsoleToken } = track
   site.turnstileSiteKey && (
     <>
       <script is:inline>
-        {`window.__kmTurnstileReady = function () {
+        window.__kmTurnstileReady = function () {
           document.querySelectorAll('[data-turnstile]').forEach(function (el) {
             if (el.dataset.rendered) return;
             el.dataset.rendered = '1';
@@ -101,7 +117,7 @@ const { metaPixelId, gtmId, ga4Id, callRailSwapSrc, searchConsoleToken } = track
               'refresh-expired': 'auto',
             });
           });
-        };`}
+        };
       </script>
       <script
         is:inline
