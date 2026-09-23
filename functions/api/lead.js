@@ -9,7 +9,11 @@
  *      pixel via the shared event_id.
  *
  * Environment variables (Cloudflare Pages > Settings > Environment variables):
- *   CRM_ENDPOINT          Nemroot POST URL                      (pending)
+ *   NEMROOT_API_BASE      Nemroot partner API host              (pending)
+ *   NEMROOT_PARTNER_KEY   X-Partner-Key, issued once by Nemroot  (pending)
+ *   NEMROOT_CUSTOMER_ID   Kayalar's customerId in Nemroot        (pending)
+ *   NEMROOT_SOURCE        optional: overrides the derived source label
+ *   CRM_ENDPOINT          Apps Script relay URL (sheet log)
  *   CRM_AUTH_HEADER       e.g. "Authorization" or "X-API-Key"   (optional)
  *   CRM_AUTH_VALUE        e.g. "Bearer xxxxx"                   (optional)
  *   LEAD_BACKUP_WEBHOOK   n8n / Zapier catch URL                (optional)
@@ -81,7 +85,223 @@ async function verifyTurnstile(token, env, request) {
   }
 }
 
-async function sendToCrm(lead, env) {
+/* ===========================================================================
+ * Nemroot Partner Lead API
+ *
+ * Replaces the email hand-off. The lead is posted straight into the
+ * dealership's Nemroot workspace, where their AI agent makes first contact by
+ * text or email within seconds, so this call runs at the edge rather than via
+ * the Apps Script relay: no cold start, no mail queue.
+ *
+ * Inert until NEMROOT_API_BASE, NEMROOT_PARTNER_KEY and NEMROOT_CUSTOMER_ID
+ * are all set, so the current email path keeps working until cutover.
+ * ======================================================================== */
+
+const FORM_LABELS = {
+  form_1_hero: 'hero form',
+  form_2_prefooter: 'pre-footer form',
+  form_3_popup_generic: 'exit-intent pop-up',
+  form_3_popup_vehicle: 'vehicle pop-up (Check Availability)',
+};
+
+/** Which paid channel the click came from. Click IDs beat utm_source: they are
+ *  set by the ad platform itself and cannot be mistyped in a campaign builder. */
+function nemrootChannel(lead) {
+  if (lead.gclid || lead.gbraid || lead.wbraid) return 'google_ads';
+  if (lead.fbclid) return 'meta_ads';
+  if (lead.msclkid) return 'bing_ads';
+  const s = (lead.utm_source || '').toLowerCase();
+  if (s.indexOf('google') !== -1) return 'google_ads';
+  if (s.indexOf('facebook') !== -1 || s.indexOf('meta') !== -1 || s.indexOf('instagram') !== -1) {
+    return 'meta_ads';
+  }
+  if (s.indexOf('bing') !== -1 || s.indexOf('microsoft') !== -1) return 'bing_ads';
+  return 'direct';
+}
+
+/**
+ * The `source` the dealership sees and reports on. Landing page plus channel,
+ * so LP1 and LP2 and Google and Meta stay separable in their dashboard:
+ * lp1_google_ads, lp2_meta_ads, and so on. NEMROOT_SOURCE overrides it whole if
+ * Nemroot asks for a specific label.
+ */
+function nemrootSource(lead, env) {
+  if (env.NEMROOT_SOURCE) return env.NEMROOT_SOURCE;
+  const raw = (lead.landing_page + '_' + nemrootChannel(lead)).toLowerCase();
+  return raw.replace(/[^a-z0-9_-]/g, '_').slice(0, 60);
+}
+
+/** Free text the AI agent reads before it writes to the buyer. */
+function nemrootMessage(lead) {
+  const lines = [];
+
+  // First line on purpose: the agent texts the buyer, and a Spanish-speaking
+  // lead getting an English text is a bad first impression.
+  if (lead.locale === 'es') {
+    lines.push('PREFERRED LANGUAGE: Spanish. This buyer used the Spanish page — please reply in Spanish.');
+  }
+
+  lines.push(
+    'Submitted from the ' +
+      (FORM_LABELS[lead.form_id] || lead.form_id) +
+      ' on the Kayalar ' +
+      lead.landing_page +
+      ' landing page.'
+  );
+
+  if (lead.existing_loan) lines.push('Has an existing car loan: ' + lead.existing_loan + '.');
+  if (lead.pre_approval) lines.push('Already pre-approved for financing: ' + lead.pre_approval + '.');
+  if (lead.vehicle_url) lines.push('Vehicle page: ' + lead.vehicle_url);
+
+  const campaign = [lead.utm_source, lead.utm_medium, lead.utm_campaign]
+    .filter(function (v) {
+      return v;
+    })
+    .join(' / ');
+  if (campaign) lines.push('Campaign: ' + campaign);
+
+  return lines.join('\n').slice(0, 5000);
+}
+
+/** Everything else worth keeping. The API caps this at 25 scalar keys. */
+function nemrootCustomFields(lead) {
+  const candidates = {
+    landing_page: lead.landing_page,
+    form_id: lead.form_id,
+    language: lead.locale === 'es' ? 'Spanish' : 'English',
+    existing_loan: lead.existing_loan,
+    pre_approval: lead.pre_approval,
+    vehicle_id: lead.vehicle_id,
+    vehicle_url: lead.vehicle_url,
+    utm_source: lead.utm_source,
+    utm_medium: lead.utm_medium,
+    utm_campaign: lead.utm_campaign,
+    utm_content: lead.utm_content,
+    utm_term: lead.utm_term,
+    gclid: lead.gclid,
+    gbraid: lead.gbraid,
+    wbraid: lead.wbraid,
+    fbclid: lead.fbclid,
+    msclkid: lead.msclkid,
+    page_url: lead.page_url,
+    referrer: lead.referrer,
+    submitted_at: lead.submitted_at,
+  };
+
+  const out = {};
+  let n = 0;
+  for (const key in candidates) {
+    const value = candidates[key];
+    if (value === undefined || value === null || value === '') continue;
+    if (n >= 25) break;
+    out[key] = String(value).slice(0, 1000);
+    n++;
+  }
+  return out;
+}
+
+function buildNemrootLead(lead, env) {
+  const body = {
+    customerId: env.NEMROOT_CUSTOMER_ID,
+    source: nemrootSource(lead, env),
+    // Our own id for this submission, already a UUID. Doubles as the
+    // idempotency key, so a retry can never create a second lead.
+    externalId: lead.event_id,
+    email: lead.email,
+    message: nemrootMessage(lead),
+    customFields: nemrootCustomFields(lead),
+    consent: {
+      tcpa: !!lead.tcpa_consent,
+      capturedAt: lead.submitted_at,
+      sourceUrl: lead.page_url,
+    },
+  };
+
+  if (lead.full_name) body.name = lead.full_name.slice(0, 200);
+  if (lead.phone) body.phone = lead.phone.length === 10 ? '+1' + lead.phone : lead.phone;
+  if (lead.vehicle_name) body.vehicleInterest = lead.vehicle_name.slice(0, 500);
+
+  const campaignName = lead.utm_campaign || 'Kayalar ' + lead.landing_page;
+  body.campaign = { campaignName: String(campaignName).slice(0, 200) };
+  const adId = lead.utm_content || lead.gclid || lead.fbclid;
+  if (adId) body.campaign.adId = String(adId).slice(0, 200);
+
+  return body;
+}
+
+async function sendToNemroot(lead, env) {
+  const base = (env.NEMROOT_API_BASE || '').replace(/\/+$/, '');
+  if (!base || !env.NEMROOT_PARTNER_KEY || !env.NEMROOT_CUSTOMER_ID) {
+    return { attempted: false, reason: 'Nemroot API not configured' };
+  }
+
+  // Tolerates either the host on its own or the full partner base path.
+  const url =
+    base.indexOf('/api/v1/partner') !== -1 ? base + '/leads' : base + '/api/v1/partner/leads';
+  const body = JSON.stringify(buildNemrootLead(lead, env));
+
+  let last = null;
+  for (let attempt = 1; attempt <= 3; attempt++) {
+    try {
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Partner-Key': env.NEMROOT_PARTNER_KEY,
+        },
+        body: body,
+        signal: AbortSignal.timeout(8000),
+      });
+
+      const text = await res.text();
+      let data = {};
+      try {
+        data = JSON.parse(text);
+      } catch (_) {
+        data = {};
+      }
+
+      if (res.ok) {
+        const d = data.data || {};
+        return {
+          attempted: true,
+          ok: true,
+          status: res.status,
+          attempt: attempt,
+          leadId: d.leadId,
+          duplicate: !!d.duplicate,
+          isNew: d.isNew,
+          channel: d.channel,
+        };
+      }
+
+      last = {
+        attempted: true,
+        ok: false,
+        status: res.status,
+        attempt: attempt,
+        code: data.code,
+        error: data.error,
+        details: data.details ? JSON.stringify(data.details).slice(0, 300) : undefined,
+      };
+
+      // A bad key, a bad customerId or a malformed field fails the same way
+      // every time. Only 5xx and rate limiting are worth another attempt.
+      if (res.status < 500 && res.status !== 429) return last;
+    } catch (err) {
+      last = { attempted: true, ok: false, attempt: attempt, error: String(err) };
+    }
+
+    if (attempt < 3) {
+      await new Promise(function (r) {
+        setTimeout(r, attempt === 1 ? 500 : 2000);
+      });
+    }
+  }
+  return last;
+}
+
+async function sendToCrm(lead, env, nemroot) {
   if (!env.CRM_ENDPOINT) return { attempted: false, ok: false, reason: 'CRM_ENDPOINT not set' };
 
   const headers = { 'Content-Type': 'application/json' };
@@ -93,7 +313,9 @@ async function sendToCrm(lead, env) {
     const res = await fetch(env.CRM_ENDPOINT, {
       method: 'POST',
       headers,
-      body: JSON.stringify(lead),
+      // The Apps Script logs to the sheet, so it gets the Nemroot outcome too:
+      // one place to see whether a lead actually reached the CRM.
+      body: JSON.stringify(nemroot ? Object.assign({}, lead, { nemroot: nemroot }) : lead),
     });
     return { attempted: true, ok: res.ok, status: res.status };
   } catch (err) {
@@ -258,29 +480,45 @@ export async function onRequestPost({ request, env, waitUntil }) {
    * reported delivery to the visitor anyway, failures are logged, and the
    * Google Sheet is the durable record.
    */
+  /* Nemroot first, then the sheet, so the sheet can record whether the CRM
+     accepted the lead. The extra hop costs the visitor nothing: all of this
+     runs after the response has already gone out. */
+  const crmChain = (async function () {
+    const nemroot = await sendToNemroot(lead, env);
+    const crm = await sendToCrm(lead, env, nemroot);
+    return { nemroot: nemroot, crm: crm };
+  })();
+
   const deliver = Promise.all([
-    sendToCrm(lead, env),
+    crmChain,
     sendToBackup(lead, env),
     sendToMetaCapi(lead, env, request),
   ]).then(function (results) {
-    const crm = results[0];
+    const nemroot = results[0].nemroot;
+    const crm = results[0].crm;
     const backup = results[1];
     const capi = results[2];
 
-    // Until CRM_ENDPOINT is filled in, this line is the lead's only trail.
     // Cloudflare Pages > Deployment > Functions > Real-time logs.
-    if (!crm.ok) {
-      console.log('KAYALAR_LEAD_UNDELIVERED', JSON.stringify({ lead, crm, backup }));
+    if (nemroot.attempted && !nemroot.ok) {
+      console.log('KAYALAR_NEMROOT_FAILED', JSON.stringify({ lead: lead, nemroot: nemroot }));
+    }
+
+    // Only truly lost if neither destination took it.
+    if (!nemroot.ok && !crm.ok) {
+      console.log('KAYALAR_LEAD_UNDELIVERED', JSON.stringify({ lead, nemroot, crm, backup }));
     } else {
       console.log(
         'KAYALAR_LEAD',
         lead.form_id,
         lead.email,
         lead.vehicle_name || '-',
+        'nemroot:' + (nemroot.ok ? nemroot.leadId || 'ok' : nemroot.reason || 'failed'),
+        'sheet:' + (crm.ok ? 'ok' : crm.reason || 'failed'),
         'capi:' + (capi.ok ? 'ok' : capi.reason || 'failed')
       );
     }
-    return { crm: crm, backup: backup, capi: capi };
+    return { nemroot: nemroot, crm: crm, backup: backup, capi: capi };
   });
 
   // Debug mode, and local dev where waitUntil does not exist, wait for the
