@@ -1,9 +1,14 @@
 // @ts-check
 import { defineConfig } from 'astro/config';
 
-// SITE is used for canonical + og:url. Set PUBLIC_SITE_URL in .env / Cloudflare
-// once the final subdomain is confirmed (Section 1: "Target Subdomain / URL").
-const SITE = process.env.PUBLIC_SITE_URL || 'https://lp1-kayalar.pages.dev';
+// Drives canonical, hreflang and og:url. The live domain is the built-in
+// default now that DNS is in place, so the pages stay correct even if nobody
+// sets the variable. PUBLIC_SITE_URL still overrides it for a staging host.
+//
+// Note: this is read at BUILD time. On Cloudflare it has to be a plain text
+// variable — an encrypted Secret is not visible to the build, only to the
+// Function at runtime.
+const SITE = process.env.PUBLIC_SITE_URL || 'https://book.kayalar-motors.com';
 
 export default defineConfig({
   site: SITE,
