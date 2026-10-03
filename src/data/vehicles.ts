@@ -5,11 +5,16 @@
  * They are 960x720 WebP (4:3, the source ratio) so the cards never crop the
  * dealer watermark off the top-left or the badge off the bottom-right.
  *
- * `price` and `mileage` are transcribed from the dealer's own VDP pages
- * (15 Sep 2026). They are plain display strings, so they read correctly in both
- * EN and ES without locale formatting. Re-check them whenever inventory
- * changes: a stale advertised price is the one error on this page that costs
- * real money. A null price still falls back to the "Call for price" label.
+ * `price` and `mileage` are reconciled against Kayalar's live inventory feed
+ * (the Google vehicle feed Nemroot publishes), last checked 1 Oct 2026. They
+ * are plain display strings, so they read correctly in both EN and ES without
+ * locale formatting.
+ *
+ * Four of these six prices had already drifted below what this file said,
+ * which means the page was advertising more than the lot was charging. Check
+ * them against the feed whenever inventory moves: a stale advertised price is
+ * the one error on this page that costs real money. A null price still falls
+ * back to the "Call for price" label.
  */
 
 export type Vehicle = {
@@ -36,7 +41,7 @@ export const vehicles: Vehicle[] = [
     trim: 'P360 SE',
     name: '2023 Land Rover Range Rover Sport P360 SE',
     url: 'https://kayalar-motors.com/vdp/23785724/Used-2023-Land-Rover-Range-Rover-Sport-P360-SE-for-sale-in-Houston-TX-77095',
-    price: '$58,999',
+    price: '$57,999',
     mileage: '59,284',
     image: '/images/vehicles/range-rover-sport-p360-se.webp',
   },
@@ -48,7 +53,7 @@ export const vehicles: Vehicle[] = [
     trim: 'Premium Plus 55 TFSI quattro',
     name: '2022 Audi Q7 Premium Plus 55 TFSI quattro',
     url: 'https://kayalar-motors.com/vdp/23869126/Used-2022-Audi-Q7-Premium-Plus-55-TFSI-quattro-for-sale-in-Houston-TX-77095',
-    price: '$27,499',
+    price: '$26,999',
     mileage: '63,703',
     image: '/images/vehicles/audi-q7-premium-plus.webp',
   },
@@ -60,7 +65,7 @@ export const vehicles: Vehicle[] = [
     trim: 'XSE Auto Natl',
     name: '2020 Toyota Camry XSE Auto Natl',
     url: 'https://kayalar-motors.com/vdp/23869122/Used-2020-Toyota-Camry-XSE-Auto-Natl-for-sale-in-Houston-TX-77095',
-    price: '$20,499',
+    price: '$19,999',
     mileage: '93,004',
     image: '/images/vehicles/toyota-camry-xse.webp',
   },
@@ -96,7 +101,7 @@ export const vehicles: Vehicle[] = [
     trim: '4WD 4dr Denali',
     name: '2021 GMC Yukon 4WD 4dr Denali',
     url: 'https://kayalar-motors.com/vdp/23211704/Used-2021-GMC-Yukon-4WD-4dr-Denali-for-sale-in-Houston-TX-77095',
-    price: '$39,999',
+    price: '$39,499',
     mileage: '97,516',
     image: '/images/vehicles/gmc-yukon-denali.webp',
   },
