@@ -13,7 +13,8 @@
  *   NEMROOT_PARTNER_KEY   X-Partner-Key, issued once by Nemroot  (pending)
  *   NEMROOT_CUSTOMER_ID   Kayalar's customerId in Nemroot        (pending)
  *   NEMROOT_SOURCE        optional: overrides the derived source label
- *   CRM_ENDPOINT          Apps Script relay URL (sheet log)
+ *   RELAY_URL             Universal Standard Lead Relay /exec?key=...
+ *   CRM_ENDPOINT          legacy Apps Script, kept during the transition
  *   CRM_AUTH_HEADER       e.g. "Authorization" or "X-API-Key"   (optional)
  *   CRM_AUTH_VALUE        e.g. "Bearer xxxxx"                   (optional)
  *   LEAD_BACKUP_WEBHOOK   n8n / Zapier catch URL                (optional)
@@ -323,6 +324,120 @@ async function sendToCrm(lead, env, nemroot) {
   }
 }
 
+/* ===========================================================================
+ * Universal Standard Lead Relay
+ *
+ * The shared sheet log for every Feyth client. It takes the standard payload
+ * below, which is identical across clients, and routes it to this client's
+ * spreadsheet on a tab chosen by ad platform.
+ *
+ * Client-specific meaning lives in the five custom slots. For Kayalar:
+ *   1 existing car loan   2 pre-approved   3 vehicle   4 vehicle id   5 VDP url
+ * The labels for those columns are configured once in the relay, not here.
+ * ======================================================================== */
+
+/** This client's slug in the relay registry, and this page's live domain. */
+const RELAY_CLIENT = 'kayalar';
+const RELAY_LANDING_PAGE = 'book.kayalar-motors.com';
+
+/** Short, readable form names. The long ids stay internal. */
+const RELAY_FORM_NAMES = {
+  form_1_hero: 'hero',
+  form_2_prefooter: 'prefooter',
+  form_3_popup_generic: 'popup',
+  form_3_popup_vehicle: 'popup_vehicle',
+};
+
+function buildRelayPayload(lead, nemroot, turnstile) {
+  return {
+    client: RELAY_CLIENT,
+    landing_page: RELAY_LANDING_PAGE,
+    form: RELAY_FORM_NAMES[lead.form_id] || lead.form_id,
+    locale: lead.locale,
+
+    // Same value as the CRM externalId and the Meta event_id, so one lead can
+    // be followed across all three systems.
+    lead_id: lead.event_id,
+    submitted_at: lead.submitted_at,
+
+    full_name: lead.full_name,
+    first_name: lead.first_name,
+    last_name: lead.last_name,
+    phone: lead.phone_formatted,
+    email: lead.email,
+    company: '',
+
+    custom_1: lead.existing_loan,
+    custom_2: lead.pre_approval,
+    custom_3: lead.vehicle_name,
+    custom_4: lead.vehicle_id,
+    custom_5: lead.vehicle_url,
+
+    consent: !!lead.tcpa_consent,
+    channel: nemrootChannel(lead),
+
+    utm_source: lead.utm_source,
+    utm_medium: lead.utm_medium,
+    utm_campaign: lead.utm_campaign,
+    utm_content: lead.utm_content,
+    utm_term: lead.utm_term,
+
+    gclid: lead.gclid,
+    gbraid: lead.gbraid,
+    wbraid: lead.wbraid,
+    fbclid: lead.fbclid,
+    msclkid: lead.msclkid,
+    fbp: lead.fbp,
+    fbc: lead.fbc,
+
+    page_url: lead.page_url,
+    referrer: lead.referrer,
+    user_agent: lead.user_agent,
+    ip: lead.ip,
+
+    // What the CRM did with it, so the sheet shows delivery in one column.
+    crm: {
+      attempted: !!nemroot.attempted,
+      ok: !!nemroot.ok,
+      leadId: nemroot.leadId || '',
+      summary: nemroot.ok
+        ? (nemroot.duplicate ? 'DUPLICATE' : 'OK') +
+          (nemroot.leadId ? ' — ' + nemroot.leadId : '') +
+          (nemroot.channel ? ' (' + nemroot.channel + ')' : '')
+        : nemroot.attempted
+          ? 'FAILED — ' + (nemroot.code || nemroot.status || '') + ' ' + (nemroot.error || '')
+          : 'skipped — ' + (nemroot.reason || 'not configured'),
+    },
+
+    turnstile: turnstile.checked
+      ? turnstile.ok
+        ? turnstile.failOpen
+          ? 'not verified (Cloudflare unreachable)'
+          : 'verified'
+        : 'failed — ' + (turnstile.codes || []).join(', ')
+      : 'skipped — not configured',
+  };
+}
+
+async function sendToRelay(lead, env, nemroot, turnstile) {
+  if (!env.RELAY_URL) return { attempted: false, reason: 'RELAY_URL not set' };
+  try {
+    const res = await fetch(env.RELAY_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(buildRelayPayload(lead, nemroot, turnstile)),
+    });
+    const text = await res.text();
+    let data = {};
+    try {
+      data = JSON.parse(text);
+    } catch (_) {}
+    return { attempted: true, ok: res.ok && data.ok !== false, status: res.status, tab: data.tab, error: data.error };
+  } catch (err) {
+    return { attempted: true, ok: false, error: String(err) };
+  }
+}
+
 async function sendToBackup(lead, env) {
   if (!env.LEAD_BACKUP_WEBHOOK) return { attempted: false };
   try {
@@ -485,8 +600,14 @@ export async function onRequestPost({ request, env, waitUntil }) {
      runs after the response has already gone out. */
   const crmChain = (async function () {
     const nemroot = await sendToNemroot(lead, env);
+
+    /* The relay logs whether the CRM accepted the lead, so it runs after.
+       The legacy Apps Script keeps running while CRM_ENDPOINT still has a
+       value: a transition period with both sheets filling. Clear that
+       variable once the standard sheet looks right and the old one retires. */
+    const relay = await sendToRelay(lead, env, nemroot, turnstile);
     const crm = await sendToCrm(lead, env, nemroot);
-    return { nemroot: nemroot, crm: crm };
+    return { nemroot: nemroot, relay: relay, crm: crm };
   })();
 
   const deliver = Promise.all([
@@ -495,6 +616,7 @@ export async function onRequestPost({ request, env, waitUntil }) {
     sendToMetaCapi(lead, env, request),
   ]).then(function (results) {
     const nemroot = results[0].nemroot;
+    const relay = results[0].relay;
     const crm = results[0].crm;
     const backup = results[1];
     const capi = results[2];
@@ -514,11 +636,12 @@ export async function onRequestPost({ request, env, waitUntil }) {
         lead.email,
         lead.vehicle_name || '-',
         'nemroot:' + (nemroot.ok ? nemroot.leadId || 'ok' : nemroot.reason || 'failed'),
+        'relay:' + (relay.ok ? relay.tab || 'ok' : relay.reason || relay.error || 'failed'),
         'sheet:' + (crm.ok ? 'ok' : crm.reason || 'failed'),
         'capi:' + (capi.ok ? 'ok' : capi.reason || 'failed')
       );
     }
-    return { nemroot: nemroot, crm: crm, backup: backup, capi: capi };
+    return { nemroot: nemroot, relay: relay, crm: crm, backup: backup, capi: capi };
   });
 
   // Debug mode, and local dev where waitUntil does not exist, wait for the
