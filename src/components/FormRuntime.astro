@@ -192,6 +192,9 @@ const config = {
 
         const payload = Object.fromEntries(new FormData(form).entries());
         payload.tcpa_consent = form.elements['tcpa_consent'].checked ? 'yes' : 'no';
+        // Same visitor id the pixel and /api/pageview send, so Meta links the
+        // visit to the lead.
+        payload.visitor_id = window.__lpVid || '';
 
         if (button) {
           button.disabled = true;
