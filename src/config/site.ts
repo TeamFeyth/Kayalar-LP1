@@ -9,8 +9,8 @@ export const site = {
   landingPage: 'LP1',
 
   // Contact — Section 5.8 / 5.9 of the brief
-  phoneDisplay: '832-966-7907',
-  phoneHref: 'tel:+18329667907',
+  phoneDisplay: '832-373-7322',
+  phoneHref: 'tel:+18323737322',
   addressLine: '16230 FM 529 Road, Houston, TX 77095',
   addressStreet: '16230 FM 529 Road',
   addressCity: 'Houston',
