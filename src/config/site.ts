@@ -60,8 +60,7 @@ export const tracking = {
   // from the other landing page, so the two stay independent in GTM.
   gtmId: import.meta.env.PUBLIC_GTM_ID || 'GTM-P82QQLJ8',
   ga4Id: import.meta.env.PUBLIC_GA4_ID || '',            // e.g. G-XXXXXXXXXX
-  // Supplied in the brief (Section 4). LP1 only — LP2's CallRail field is still
-  // blank, so that project keeps an empty default and renders no tag.
+  // Kayalar CallRail account, shared with LP2.
   callRailSwapSrc:
     import.meta.env.PUBLIC_CALLRAIL_SWAP_SRC ||
     '//cdn.callrail.com/companies/357324316/48d41d9d83314e44f676/12/swap.js',

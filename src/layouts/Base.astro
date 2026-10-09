@@ -66,5 +66,8 @@ const esHref = new URL(alternatePath(Astro.url, 'es'), Astro.site).href;
       )
     }
     <slot />
+    {/* CallRail Dynamic Number Insertion. CallRail's install guide: immediately
+        before </body> on every page that shows a phone number. */}
+    {tracking.callRailSwapSrc && <script is:inline type="text/javascript" src={tracking.callRailSwapSrc}></script>}
   </body>
 </html>
